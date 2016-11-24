@@ -1,12 +1,17 @@
 FROM node:4-onbuild
 
-RUN mkdir -p /concourse-nats/
-WORKDIR /concourse-nats/
+# NOTE: JS_* are exposed in the front end JS
+ENV JS_INTERVAL 8000
+ENV CONCOURSE_URL_PROTOCOL https
+ENV CONCOURSE_URL_HOST concourse.example.com
 
-COPY package.json /concourse-nats/
+RUN mkdir -p /concourse-workbench/
+WORKDIR /concourse-workbench/
+
+COPY package.json /concourse-workbench/
 RUN npm install
 
-COPY . /concourse-nats/
+COPY . /concourse-workbench/
 
 EXPOSE 8888
 CMD [ "npm", "start" ]

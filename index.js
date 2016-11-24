@@ -6,9 +6,9 @@ const _ = require('lodash');
 const url = require('url');
 
 const baseForward = {
-    protocol: 'https',
+    protocol: process.env.CONCOURSE_URL_PROTOCOL,
     slashes: true,
-    host: 'concourse.appcarousel.com'
+    host: process.env.CONCOURSE_URL_HOST
 };
 
 function doRedirect(request, reply) {
@@ -18,6 +18,18 @@ function doRedirect(request, reply) {
     })
 
     return reply.redirect(url.format(targetRedirect));
+}
+
+/**
+ * Handler for environment requests. Takes JS_* environment variables from 
+ * peocess.env and passes them back to the front end.
+ */
+function getEnv(request, reply) {
+    var frontEndEnv = _.pickBy(process.env, (value, key) => {
+        return _.startsWith(key, 'JS_');
+    });
+
+    reply(frontEndEnv);
 }
 
 var config = {
@@ -59,6 +71,14 @@ server.register([
             directory: {
                 path: 'public'
             }
+        }
+    });
+
+    server.route({
+        method: 'GET',
+        path: '/e',
+        config: {
+            handler: getEnv
         }
     });
 

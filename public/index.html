@@ -85,6 +85,21 @@
 			});
 		}
 
+		// get and set the env
+		$scope.getJSEnv = function() {
+			$http({
+				method: 'GET',
+				url: '/e'
+			}).then(function(response) {
+				$scope.setJSEnv(response.data);
+			}, function(err) {
+				console.error(err);
+			});
+		}
+		$scope.setJSEnv = function(jsenv) {
+			$scope.jsenv = jsenv;
+		}
+
 		$scope.setPipes = function(pipes) {
 			pipes.forEach(function(pipe, index) {
 				pipes[index].aggregateStatus = 'no-builds';
@@ -137,7 +152,22 @@
 		}
 
 		$scope.getPipes();
-		//setInterval($scope.getPipes, 5000);
+		$scope.getJSEnv();
+
+		// setup auto refresh
+		var refreshInterval;
+		$scope.$watch('jsenv', function(newValue, oldValue) {
+			var existingInteval = refreshInterval !== null && refreshInterval !== undefined;
+			if (newValue && newValue.JS_INTERVAL > 0 && !existingInteval) {
+				refreshInterval = setInterval($scope.getPipes, newValue.JS_INTERVAL);
+			} else if (newValue && newValue.JS_INTERVAL > 0 && existingInteval) {
+				clearInterval(existingInteval);
+				refreshInterval = setInterval($scope.getPipes, newValue.JS_INTERVAL);
+			} else if (existingInteval) {
+				clearInterval(existingInteval);
+				delete refreshInterval;
+			}
+		});
     });
     </script>
 	</body>
