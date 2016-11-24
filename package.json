@@ -1,0 +1,20 @@
+{
+  "name": "concourse-workbench",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Chris Reid",
+  "license": "MIT License",
+  "dependencies": {
+    "good": "^7.0.2",
+    "good-console": "^6.3.1",
+    "good-squeeze": "^5.0.1",
+    "h2o2": "^5.4.0",
+    "hapi": "^15.2.0",
+    "inert": "^4.0.2",
+    "lodash": "^4.17.2"
+  }
+}
