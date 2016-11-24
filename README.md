@@ -8,7 +8,7 @@ This assumes that the concourse instance you are attempting to monitor is v2.5+ 
 
 ## Quick
 ```
-docker run --rm -it -e "CONCOURSE_URL_HOST=concourse.appcarousel.com" -p 8888:8888 chrinor2002/concourse-workbench
+docker run --rm -it -e "CONCOURSE_URL_HOST=concourse.yourcompany.com" -p 8888:8888 chrinor2002/concourse-workbench
 ```
 
 ## Custom Image
@@ -22,6 +22,7 @@ docker run --rm -it -p 8888:8888 yourcompany/concourse-workbench
 ```
 
 # Env Variables
+
 There are two types of variables:
 
 1. JS_* - these are env variables that can be set either when using docker run, or in a Dockerfile, and will be exposed to the running application page.
