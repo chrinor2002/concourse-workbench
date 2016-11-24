@@ -1,13 +1,14 @@
 {
   "name": "concourse-workbench",
+  "private": true,
   "version": "1.0.0",
-  "description": "",
+  "description": "Provides a one page web application to monitor concourse job states.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "author": "Chris Reid",
-  "license": "MIT License",
+  "license": "MIT",
   "dependencies": {
     "good": "^7.0.2",
     "good-console": "^6.3.1",
