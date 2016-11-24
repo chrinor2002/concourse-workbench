@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Concourse NATS</title>
+
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+		<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular.min.js"></script>
+
+		<link href="/c/public/main.css" media="all" rel="stylesheet" type="text/css">
+		<link id="favicon" rel="icon" type="image/png" href="/c/public/images/favicon.png" />
+
+		<style>
+			.pipe {
+				display: block;
+				float: left;
+				margin: 1.5em;
+				position: relative;
+			}
+			.pipe .js-animation-wrapper {
+				height: 100%;
+				width: 100%;
+				position: absolute;
+				top: 0;
+				left: 0;
+			}
+			.pipe .animation-medium {
+				height: 100%;
+				width: 100%;
+			}
+			.pipe.paused {
+				opacity: 0.5;
+			}
+			.pipe .job {
+				height: 5px;
+				margin-bottom: 1px;
+				width: 100%;
+			}
+			.pipe .text {
+				padding: 1.5em;
+			}
+		</style>
+	</head>
+	<body ng-app="concourseNATS" ng-controller="concourseNATS">
+		<div class="content-frame">
+			<a href="/r/{{ pipe.url }}" ng-repeat="pipe in pipelines | orderBy:['paused', 'name']" class="pipe" ng-class="getPipeClasses(pipe)">
+				<div class="text">
+				{{ pipe.name }}
+				</div>
+				<div class="js-animation-wrapper">
+					<div class="animation animation-medium"></div>
+				</div>
+			</a>
+		</div>
+	<script>
+
+    var app = angular.module('concourseNATS', []);
+	app.run(function($rootScope) {
+		$rootScope.keys = Object.keys;
+	});
+    app.controller('concourseNATS', function($scope, $window, $http) {
+		$scope.getPipeClasses = function(pipe) {
+			return {
+				pipe: true,
+				'job-animation-node': true,
+				'no-builds': pipe.aggregateStatus == 'no-builds',
+				succeeded: pipe.aggregateStatus == 'succeeded',
+				failed: pipe.aggregateStatus == 'failed',
+				errored: pipe.aggregateStatus == 'errored',
+				pending: pipe.pending == 'pending',
+				started: pipe.pending == 'started',
+				paused: pipe.paused
+			};
+		}
+
+		$scope.getPipes = function() {
+			$http({
+				method: 'GET',
+				url: '/c/api/v1/teams/main/pipelines'
+			}).then(function(response) {
+				$scope.setPipes(response.data);
+			}, function(err) {
+				console.error(err);
+			});
+		}
+
+		$scope.setPipes = function(pipes) {
+			pipes.forEach(function(pipe, index) {
+				pipes[index].aggregateStatus = 'no-builds';
+			});
+
+			var list = [];
+			pipes.forEach(function(pipe, index) {
+				var promise = $http({
+					method: 'GET',
+					url: '/c/api/v1' + pipe.url + '/jobs'
+				}).then(function(jobsResponse) {
+					pipe.jobs = jobsResponse.data;
+					var status = null;
+					var pending = null;
+					jobsResponse.data.forEach(function(job) {
+						if (job.finished_build) {
+							if (status === null) {
+								status = job.finished_build.status;
+							} else if(status === 'succeeded' && job.finished_build.status === 'failed') {
+								status = job.finished_build.status;
+							} else if(job.finished_build.status === 'errored') {
+								status = job.finished_build.status;
+							}
+						}
+
+						if (pending === null && job.next_build !== null) {
+							pending = job.next_build.status;
+						}
+					});
+
+					if (status !== null) {
+						pipe.aggregateStatus = status;
+					} else {
+						pipe.aggregateStatus = 'no-builds';
+					}
+					pipe.pending = pending;
+
+					return pipe;
+				}, function(err) {
+					console.error(err);
+				});
+				list.push(promise);
+			});
+			if ($scope.pipelines === null || $scope.pipelines === undefined) {
+				$scope.pipelines = pipes;
+			}
+			Promise.all(list).then((pipes) => {
+				$scope.pipelines = pipes;
+			});
+		}
+
+		$scope.getPipes();
+		//setInterval($scope.getPipes, 5000);
+    });
+    </script>
+	</body>
+</html>
