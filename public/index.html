@@ -9,14 +9,26 @@
 		<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular.min.js"></script>
 
 		<link href="/c/public/main.css" media="all" rel="stylesheet" type="text/css">
+		<link href="/css/clearfix.css" media="all" rel="stylesheet" type="text/css">
 		<link id="favicon" rel="icon" type="image/png" href="/c/public/images/favicon.png" />
 
 		<style>
-			.pipe {
-				display: block;
+			.content-frame {
+				padding-top: 1.5em;
+			}
+			.pipe-wrapper {
+				line-height: 1.5em;
 				float: left;
 				margin: 1.5em;
+				width: 150px;
+				height: 9em; /* 1.5 * 4 + 1.5 + 1.5 */
+			}
+			.pipe {
+				display: block;
 				position: relative;
+				width: 100%;
+				height: auto;
+				max-height: 9em; /* 1.5 * 4 + 1.5 + 1.5 */
 			}
 			.pipe .js-animation-wrapper {
 				height: 100%;
@@ -44,14 +56,16 @@
 	</head>
 	<body ng-app="concourseNATS" ng-controller="concourseNATS">
 		<div class="content-frame">
-			<a href="/r/{{ pipe.url }}" ng-repeat="pipe in pipelines | orderBy:['paused', 'name']" class="pipe" ng-class="getPipeClasses(pipe)">
-				<div class="text">
-				{{ pipe.name }}
+			<div class="pipes clearfix">
+				<div ng-repeat="pipe in pipelines | filter: {paused: false} | orderBy:['name']" class="pipe-wrapper">
+					<a my-pipeline href="/r/{{ pipe.url }}" class="pipe" ng-class="getPipeClasses(pipe)"></a>
 				</div>
-				<div class="js-animation-wrapper">
-					<div class="animation animation-medium"></div>
+			</div>
+			<div class="pipes clearfix">
+				<div ng-repeat="pipe in pipelines | filter: {paused: true} | orderBy:['name']" class="pipe-wrapper">
+					<a my-pipeline href="/r/{{ pipe.url }}" class="pipe" ng-class="getPipeClasses(pipe)"></a>
 				</div>
-			</a>
+			</div>
 		</div>
 	<script>
 
@@ -59,18 +73,23 @@
 	app.run(function($rootScope) {
 		$rootScope.keys = Object.keys;
 	});
+	app.directive('myPipeline', function() {
+	  return {
+		templateUrl: 'myPipeline.html'
+	  };
+	});
     app.controller('concourseNATS', function($scope, $window, $http) {
 		$scope.getPipeClasses = function(pipe) {
 			return {
 				pipe: true,
 				'job-animation-node': true,
-				'no-builds': pipe.aggregateStatus == 'no-builds',
-				succeeded: pipe.aggregateStatus == 'succeeded',
-				failed: pipe.aggregateStatus == 'failed',
-				errored: pipe.aggregateStatus == 'errored',
-				pending: pipe.pending == 'pending',
-				started: pipe.pending == 'started',
-				paused: pipe.paused
+				'no-builds': pipe && pipe.aggregateStatus == 'no-builds',
+				succeeded: pipe && pipe.aggregateStatus == 'succeeded',
+				failed: pipe && pipe.aggregateStatus == 'failed',
+				errored: pipe && pipe.aggregateStatus == 'errored',
+				pending: pipe && pipe.pending == 'pending',
+				started: pipe && pipe.pending == 'started',
+				paused: pipe && pipe.paused
 			};
 		}
 
@@ -107,41 +126,45 @@
 
 			var list = [];
 			pipes.forEach(function(pipe, index) {
-				var promise = $http({
-					method: 'GET',
-					url: '/c/api/v1' + pipe.url + '/jobs'
-				}).then(function(jobsResponse) {
-					pipe.jobs = jobsResponse.data;
-					var status = null;
-					var pending = null;
-					jobsResponse.data.forEach(function(job) {
-						if (job.finished_build) {
-							if (status === null) {
-								status = job.finished_build.status;
-							} else if(status === 'succeeded' && job.finished_build.status === 'failed') {
-								status = job.finished_build.status;
-							} else if(job.finished_build.status === 'errored') {
-								status = job.finished_build.status;
+				if (!pipe.paused) {
+					var promise = $http({
+						method: 'GET',
+						url: '/c/api/v1' + pipe.url + '/jobs'
+					}).then(function(jobsResponse) {
+						pipe.jobs = jobsResponse.data;
+						var status = null;
+						var pending = null;
+						jobsResponse.data.forEach(function(job) {
+							if (job.finished_build) {
+								if (status === null) {
+									status = job.finished_build.status;
+								} else if(status === 'succeeded' && job.finished_build.status === 'failed') {
+									status = job.finished_build.status;
+								} else if(job.finished_build.status === 'errored') {
+									status = job.finished_build.status;
+								}
 							}
-						}
 
-						if (pending === null && job.next_build !== null) {
-							pending = job.next_build.status;
+							if (pending === null && job.next_build !== null) {
+								pending = job.next_build.status;
+							}
+						});
+
+						if (status !== null) {
+							pipe.aggregateStatus = status;
+						} else {
+							pipe.aggregateStatus = 'no-builds';
 						}
+						pipe.pending = pending;
+
+						return pipe;
+					}, function(err) {
+						console.error(err);
 					});
-
-					if (status !== null) {
-						pipe.aggregateStatus = status;
-					} else {
-						pipe.aggregateStatus = 'no-builds';
-					}
-					pipe.pending = pending;
-
-					return pipe;
-				}, function(err) {
-					console.error(err);
-				});
-				list.push(promise);
+					list.push(promise);
+				} else {
+					list.push(Promise.resolve(pipe));
+				}
 			});
 			if ($scope.pipelines === null || $scope.pipelines === undefined) {
 				$scope.pipelines = pipes;
