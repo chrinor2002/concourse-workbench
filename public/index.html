@@ -52,18 +52,81 @@
 			.pipe .text {
 				padding: 1.5em;
 			}
+			.sidebar .filters {
+				padding: 1em;
+				text-align: left;
+			}
+			.sidebar .filters .filter{
+				padding: 0.25em;
+			}
+			.sidebar .filters .filter:first-child{
+				padding-top: 0;
+			}
 		</style>
 	</head>
 	<body ng-app="concourseNATS" ng-controller="concourseNATS">
 		<div class="content-frame">
-			<div class="pipes clearfix">
-				<div ng-repeat="pipe in pipelines | filter: {paused: false} | orderBy:['name']" class="pipe-wrapper">
-					<a my-pipeline href="/r/{{ pipe.url }}" class="pipe" ng-class="getPipeClasses(pipe)"></a>
-				</div>
+			<div id="top-bar-app">
+				<nav class="top-bar test">
+					<ul class="groups">
+						<li class="main">
+							<span class="sidebar-toggle test btn-hamburger" aria-label="Toggle Filter" ng-click="sidebarToggle()">
+								<i class="fa fa-filter"></i>
+							</span>
+						</li>
+					</ul>
+				</nav>
 			</div>
-			<div class="pipes clearfix">
-				<div ng-repeat="pipe in pipelines | filter: {paused: true} | orderBy:['name']" class="pipe-wrapper">
-					<a my-pipeline href="/r/{{ pipe.url }}" class="pipe" ng-class="getPipeClasses(pipe)"></a>
+			<div class="bottom">
+				<div class="sidebar test" ng-class="{ sidebar: true, test: true, visible: sidebarVisible }">
+					<ul class="team">
+						<li>
+							<div class="team-header">filters</div>
+						</li>
+						<li class="filters">
+							<div class="filter">
+								<label for="filterTeamName">Team:</label>
+								<input id="filterTeamName" type="text" ng-model="filter.team_name">
+							</div>
+							<div class="filter">
+								<label for="filterName">Name:</label>
+								<input id="filterName" type="text" ng-model="filter.name">
+							</div>
+							<div class="filter">
+								<label for="filterPaused">Paused:</label>
+								<input id="filterPaused" type="checkbox" ng-model="filter.paused">
+							</div>
+							<div class="filter">
+								<label for="filterPublic">Public:</label>
+								<input id="filterPublic" type="checkbox" ng-model="filter.public" ng-init="filter.public = true">
+							</div>
+							<div class="filter">
+								<label>Job Status:</label><br/>
+
+								<input id="filterAggregateStatusAny" type="radio" ng-model="filter.aggregateStatus" value="">
+								<label for="filterAggregateStatusAny">Any</label><br/>
+								<input id="filterAggregateStatusFailed" type="radio" ng-model="filter.aggregateStatus" value="failed">
+								<label for="filterAggregateStatusFailed">Failed</label><br/>
+								<input id="filterAggregateStatusErrored" type="radio" ng-model="filter.aggregateStatus" value="errored">
+								<label for="filterAggregateStatusErrored">Errored</label><br/>
+								<input id="filterAggregateStatusSucceeded" type="radio" ng-model="filter.aggregateStatus" value="succeeded">
+								<label for="filterAggregateStatusSucceeded">Succeeded</label><br/>
+								<input id="filterAggregateStatusNoBuilds" type="radio" ng-model="filter.aggregateStatus" value="no-builds">
+								<label for="filterAggregateStatusNoBuilds">No-Builds</label><br/>
+								<input id="filterAggregateStatusPending" type="radio" ng-model="filter.aggregateStatus" value="pending">
+								<label for="filterAggregateStatusPending">Pending</label><br/>
+								<input id="filterAggregateStatusStarted" type="radio" ng-model="filter.aggregateStatus" value="started">
+								<label for="filterAggregateStatusStarted">Started</label><br/>
+							</div>
+						</li>
+					</ul>
+				</div>
+				<div id="content">
+					<div class="pipes clearfix">
+						<div ng-repeat="pipe in pipelines | filter: getPipeFilter() | orderBy:['paused', 'name']" class="pipe-wrapper">
+							<a my-pipeline href="/r/{{ pipe.url }}" class="pipe" ng-class="getPipeClasses(pipe)"></a>
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -79,6 +142,11 @@
 	  };
 	});
     app.controller('concourseNATS', function($scope, $window, $http) {
+
+		$scope.sidebarToggle = function() {
+			$scope.sidebarVisible = !!!$scope.sidebarVisible;
+		}
+
 		$scope.getPipeClasses = function(pipe) {
 			return {
 				pipe: true,
@@ -91,6 +159,23 @@
 				started: pipe && pipe.pending == 'started',
 				paused: pipe && pipe.paused
 			};
+		}
+
+		$scope.filter = {};
+		$scope.getPipeFilter = function() {
+			var filter = $scope.filter;
+			/*var filters = {
+				paused: filter.paused,
+				name: filter.name,
+				aggregateStatus = filter.aggregateStatus
+			};*/
+
+			return filter;
+		}
+
+		$scope.isFilterDisabled = function(filter) {
+			var status = $scope.getPipeFilter().aggregateStatus;
+			return status && status != filter;
 		}
 
 		$scope.getPipes = function() {

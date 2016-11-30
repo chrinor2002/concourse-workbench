@@ -1,6 +1,7 @@
 const Hapi = require('hapi');
 const Inert = require('inert');
 const h2o2 = require('h2o2');
+const Wreck = require('wreck');
 const good = require('good');
 const _ = require('lodash');
 const url = require('url');
@@ -30,6 +31,35 @@ function getEnv(request, reply) {
     });
 
     reply(frontEndEnv);
+}
+
+function getResponseHeader(response, header, asArray) {
+    var head = response.headers[header.toLowerCase()];
+    var headParts = _.map(head.split(/;\s*/), (str) => {
+        if (str.includes('=')){
+            return str.split(/\s*=\s*/);
+        } else {
+            return str;
+        }
+    });
+    if (_.isNil(asArray) || asArray === false) {
+        headParts = headParts[0];
+    }
+    return headParts;
+}
+
+function handleConcoursePublic(err, res, request, reply, settings, ttl) {
+    Wreck.read(res, {}, function (err, payload) {
+        var body = payload;
+
+        var contentType = getResponseHeader(res, 'content-type', true);
+        if (contentType[0] === 'text/css') {
+            body = payload.toString(contentType[1].encoding);
+            body = body.replace(/\/public\//g, '/c/public/');
+        }
+
+        reply(body).headers = res.headers;
+    });
 }
 
 var config = {
@@ -89,6 +119,31 @@ server.register([
             proxy: {
                 uri: url.format(_.extend({}, baseForward, {
                     pathname: '{apipath}'
+                }))
+            }
+        }
+    });
+
+    server.route({
+        method: 'GET',
+        path: '/c/public/{publicpath*}',
+        handler: {
+            proxy: {
+                uri: url.format(_.extend({}, baseForward, {
+                    pathname: '/public/{publicpath}'
+                })),
+                onResponse: handleConcoursePublic
+            }
+        }
+    });
+
+    server.route({
+        method: 'GET',
+        path: '/favicon.ico',
+        handler: {
+            proxy: {
+                uri: url.format(_.extend({}, baseForward, {
+                    pathname: '/favicon.ico'
                 }))
             }
         }
