@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<title>Concourse NATS</title>
+		<title>Concourse Workbench</title>
 
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -163,14 +163,13 @@
 
 		$scope.filter = {};
 		$scope.getPipeFilter = function() {
-			var filter = $scope.filter;
-			/*var filters = {
-				paused: filter.paused,
-				name: filter.name,
-				aggregateStatus = filter.aggregateStatus
-			};*/
+			var filters = angular.extend({}, $scope.filter);
+			if (filters.aggregateStatus === 'pending' || filters.aggregateStatus === 'started') {
+				delete filters.aggregateStatus;
+				filters.pending = $scope.filter.aggregateStatus;
+			}
 
-			return filter;
+			return filters;
 		}
 
 		$scope.isFilterDisabled = function(filter) {
