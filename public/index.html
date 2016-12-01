@@ -71,12 +71,24 @@
 				left: 20%;
 				height: 40px;
 			}
+			#status-graph-top-bar .btn-hamburger {
+				width: 5%;
+				padding-left: 0;
+				padding-right: 0;
+				float: left;
+				cursor: auto;
+				text-align: center;
+			}
 			#status-graph-top-bar table {
-				width: 100%;
+				width: 90%;
 				border-collapse: collapse;
+				float: left;
 			}
 			#status-graph-top-bar table td {
 				height: 40px;
+			}
+			#status-graph-top-bar table td.success:last-of-type {
+				border: 1px solid blue;
 			}
 		</style>
 	</head>
@@ -94,11 +106,13 @@
 				</nav>
 			</div>
 			<div id="status-graph-top-bar">
+				<span class="btn-hamburger"><i class="fa fa-heartbeat"></i></span>
 				<table>
 					<tr>
 						<td ng-repeat="pipe in pipelines | filter: getPipeFilter() | orderByPipeStatus" ng-class="getPipeStatusClasses(pipe)" title="{{getPipeStatus(pipe)}}"></td>
 					</tr>
 				</table>
+				<span class="btn-hamburger"><i class="fa fa-heartbeat"></i></span>
 			</div>
 			<div class="bottom">
 				<div class="sidebar test" ng-class="{ sidebar: true, test: true, visible: sidebarVisible }">
