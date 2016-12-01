@@ -62,6 +62,23 @@
 			.sidebar .filters .filter:first-child{
 				padding-top: 0;
 			}
+
+			#status-graph-top-bar {
+				z-index: 110;
+				background-color: blue;
+				position: fixed;
+				top: 0;
+				right: 20%;
+				left: 20%;
+				height: 40px;
+			}
+			#status-graph-top-bar table {
+				width: 100%;
+				border-collapse: collapse;
+			}
+			#status-graph-top-bar table td {
+				height: 40px;
+			}
 		</style>
 	</head>
 	<body ng-app="concourseNATS" ng-controller="concourseNATS">
@@ -76,6 +93,13 @@
 						</li>
 					</ul>
 				</nav>
+			</div>
+			<div id="status-graph-top-bar">
+				<table>
+					<tr>
+						<td ng-repeat="pipe in pipelines | orderByPipeStatus" ng-class="getPipeStatusClasses(pipe)" title="{{getPipeStatus(pipe)}}"></td>
+					</tr>
+				</table>
 			</div>
 			<div class="bottom">
 				<div class="sidebar test" ng-class="{ sidebar: true, test: true, visible: sidebarVisible }">
@@ -137,9 +161,35 @@
 		$rootScope.keys = Object.keys;
 	});
 	app.directive('myPipeline', function() {
-	  return {
-		templateUrl: 'myPipeline.html'
-	  };
+		return {
+			templateUrl: 'myPipeline.html'
+		};
+	});
+	app.filter('orderByPipeStatus', function () {
+
+		function pipeStatusNumber(pipe) {
+			if (pipe.paused) {
+				return 100;
+			}
+			var status = {
+				'succeeded': 1,
+				'failed': 2,
+				'errored': 3,
+				'no-builds': 9
+			};
+			return status[pipe.aggregateStatus];
+		}
+
+		return function (items, field) {
+			var filtered = [];
+			angular.forEach(items, function(item) {
+				filtered.push(item);
+			});
+			filtered.sort(function (a, b) {    
+				return (pipeStatusNumber(a) > pipeStatusNumber(b) ? 1 : -1);
+			});
+			return filtered;
+		};
 	});
     app.controller('concourseNATS', function($scope, $window, $http) {
 
@@ -147,10 +197,20 @@
 			$scope.sidebarVisible = !!!$scope.sidebarVisible;
 		}
 
+		$scope.getPipeStatus = function(pipe) {
+			return pipe.paused ? 'paused' : pipe.aggregateStatus
+		}
+
 		$scope.getPipeClasses = function(pipe) {
-			return {
+			var classes = $scope.getPipeStatusClasses(pipe);
+			return angular.extend(classes, {
 				pipe: true,
-				'job-animation-node': true,
+				'job-animation-node': true
+			});
+		}
+
+		$scope.getPipeStatusClasses = function(pipe) {
+			return {
 				'no-builds': pipe && pipe.aggregateStatus == 'no-builds',
 				succeeded: pipe && pipe.aggregateStatus == 'succeeded',
 				failed: pipe && pipe.aggregateStatus == 'failed',
