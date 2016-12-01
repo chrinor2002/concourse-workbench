@@ -65,7 +65,6 @@
 
 			#status-graph-top-bar {
 				z-index: 110;
-				background-color: blue;
 				position: fixed;
 				top: 0;
 				right: 20%;
@@ -97,7 +96,7 @@
 			<div id="status-graph-top-bar">
 				<table>
 					<tr>
-						<td ng-repeat="pipe in pipelines | orderByPipeStatus" ng-class="getPipeStatusClasses(pipe)" title="{{getPipeStatus(pipe)}}"></td>
+						<td ng-repeat="pipe in pipelines | filter: getPipeFilter() | orderByPipeStatus" ng-class="getPipeStatusClasses(pipe)" title="{{getPipeStatus(pipe)}}"></td>
 					</tr>
 				</table>
 			</div>
