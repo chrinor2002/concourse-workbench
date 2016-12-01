@@ -248,6 +248,16 @@
 			};
 		}
 
+		var pipeSortBy = $cookies.getObject('pipeSortBy');
+		if (!pipeSortBy) {
+			pipeSortBy = 'name';
+		}
+		$scope.pipeSortBy = pipeSortBy;
+		$scope.$watch('pipeSortBy', function(newValue, oldValue){
+			// save the value to a cookie
+			$cookies.putObject('pipeSortBy', newValue);
+		}, true);
+
 		var filter = $cookies.getObject('filter');
 		if (!filter) {
 			filter = {};
@@ -255,7 +265,7 @@
 		$scope.filter = filter;
 		$scope.$watch('filter', function(newValue, oldValue){
 			// save the value to a cookie
-			$cookies.putObject('filter', filter);
+			$cookies.putObject('filter', newValue);
 		}, true);
 		$scope.getPipeFilter = function() {
 			var filters = angular.extend({}, $scope.filter);
