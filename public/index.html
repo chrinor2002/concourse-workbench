@@ -119,6 +119,19 @@
 				<div class="sidebar test" ng-class="{ sidebar: true, test: true, visible: sidebarVisible }">
 					<ul class="team">
 						<li>
+							<div class="team-header">sort</div>
+						</li>
+						<li class="filters">
+							<div class="filter">
+								<label for="sortBy">Team:</label>
+								<select id="sortBy" type="text" ng-model="pipeSortBy" ng-init="pipeSortBy = 'name'">
+									<option value="">None</option>
+									<option value="name">Name</option>
+									<option value="aggregateStatus">Status</option>
+								</select>
+							</div>
+						</li>
+						<li>
 							<div class="team-header">filters</div>
 						</li>
 						<li class="filters">
@@ -161,7 +174,7 @@
 				</div>
 				<div id="content">
 					<div class="pipes clearfix">
-						<div ng-repeat="pipe in pipelines | filter: getPipeFilter() | orderBy:['paused', 'name']" class="pipe-wrapper">
+						<div ng-repeat="pipe in pipelines | filter: getPipeFilter() | orderBy:['paused', pipeSortBy]" class="pipe-wrapper">
 							<a my-pipeline href="/r/{{ pipe.url }}" class="pipe" ng-class="getPipeClasses(pipe)"></a>
 						</div>
 					</div>
