@@ -160,6 +160,8 @@
 								<label for="filterAggregateStatusFailed">Failed</label><br/>
 								<input id="filterAggregateStatusErrored" type="radio" ng-model="filter.aggregateStatus" value="errored">
 								<label for="filterAggregateStatusErrored">Errored</label><br/>
+								<input id="filterAggregateStatusAborted" type="radio" ng-model="filter.aggregateStatus" value="aborted">
+								<label for="filterAggregateStatusAborted">Aborted</label><br/>
 								<input id="filterAggregateStatusSucceeded" type="radio" ng-model="filter.aggregateStatus" value="succeeded">
 								<label for="filterAggregateStatusSucceeded">Succeeded</label><br/>
 								<input id="filterAggregateStatusNoBuilds" type="radio" ng-model="filter.aggregateStatus" value="no-builds">
@@ -202,6 +204,7 @@
 				'succeeded': 1,
 				'failed': 2,
 				'errored': 3,
+				'aborted': 9,
 				'no-builds': 9
 			};
 			return status[pipe.aggregateStatus];
@@ -242,6 +245,7 @@
 				succeeded: pipe && pipe.aggregateStatus == 'succeeded',
 				failed: pipe && pipe.aggregateStatus == 'failed',
 				errored: pipe && pipe.aggregateStatus == 'errored',
+				aborted: pipe && pipe.aggregateStatus == 'aborted',
 				pending: pipe && pipe.pending == 'pending',
 				started: pipe && pipe.pending == 'started',
 				paused: pipe && pipe.paused
@@ -330,6 +334,8 @@
 								} else if(status === 'succeeded' && job.finished_build.status === 'failed') {
 									status = job.finished_build.status;
 								} else if(job.finished_build.status === 'errored') {
+									status = job.finished_build.status;
+								} else if(job.finished_build.status === 'aborted') {
 									status = job.finished_build.status;
 								}
 							}
