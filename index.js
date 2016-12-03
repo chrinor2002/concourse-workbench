@@ -7,7 +7,7 @@ const _ = require('lodash');
 const url = require('url');
 
 const baseForward = {
-    protocol: process.env.CONCOURSE_URL_PROTOCOL,
+    protocol: process.env.CONCOURSE_URL_PROTOCOL || 'https',
     slashes: true,
     host: process.env.CONCOURSE_URL_HOST
 };

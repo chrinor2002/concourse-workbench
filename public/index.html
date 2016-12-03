@@ -15,7 +15,7 @@
 
 		<style>
 			.content-frame {
-				padding-top: 1.5em;
+				padding-top: 10px;
 			}
 			.pipe-wrapper {
 				line-height: 1.5em;
@@ -71,6 +71,7 @@
 				right: 20%;
 				left: 20%;
 				height: 40px;
+				overflow: hidden;
 			}
 			#status-graph-top-bar .btn-hamburger {
 				width: 5%;
@@ -82,14 +83,21 @@
 			}
 			#status-graph-top-bar table {
 				width: 90%;
+				height: 40px;
 				border-collapse: collapse;
 				float: left;
 			}
 			#status-graph-top-bar table td {
-				height: 40px;
+				box-sizing: border-box;
 			}
 			#status-graph-top-bar table td.success:last-of-type {
 				border: 1px solid blue;
+			}
+			.reset {
+				text-align: center;
+			}
+			.btn-reset {
+				cursor: pointer;
 			}
 		</style>
 	</head>
@@ -123,7 +131,7 @@
 						</li>
 						<li class="filters">
 							<div class="filter">
-								<label for="sortBy">Team:</label>
+								<label for="sortBy">Sort:</label>
 								<select id="sortBy" type="text" ng-model="pipeSortBy" ng-init="pipeSortBy = 'name'">
 									<option value="">None</option>
 									<option value="name">Name</option>
@@ -149,7 +157,7 @@
 							</div>
 							<div class="filter">
 								<label for="filterPublic">Public:</label>
-								<input id="filterPublic" type="checkbox" ng-model="filter.public" ng-init="filter.public = true">
+								<input id="filterPublic" type="checkbox" ng-model="filter.public">
 							</div>
 							<div class="filter">
 								<label>Job Status:</label><br/>
@@ -170,6 +178,13 @@
 								<label for="filterAggregateStatusPending">Pending</label><br/>
 								<input id="filterAggregateStatusStarted" type="radio" ng-model="filter.aggregateStatus" value="started">
 								<label for="filterAggregateStatusStarted">Started</label><br/>
+							</div>
+						</li>
+						<li class="reset">
+							<div class="filter team-header">
+								<span ng-click="resetFilter()" class="btn-reset" title="Reset">
+									<i class="fa fa-undo"></i> Reset
+								</span>
 							</div>
 						</li>
 					</ul>
@@ -204,7 +219,7 @@
 				'succeeded': 1,
 				'failed': 2,
 				'errored': 3,
-				'aborted': 9,
+				'aborted': 8,
 				'no-builds': 9
 			};
 			return status[pipe.aggregateStatus];
@@ -221,7 +236,7 @@
 			return filtered;
 		};
 	});
-    app.controller('concourseNATS', function($scope, $window, $http, $cookies) {
+    app.controller('concourseNATS', function($scope, $window, $http, $cookies, $timeout) {
 
 		$scope.sidebarToggle = function() {
 			$scope.sidebarVisible = !!!$scope.sidebarVisible;
@@ -252,9 +267,10 @@
 			};
 		}
 
+		var defaultPipeSortBy = 'name';
 		var pipeSortBy = $cookies.getObject('pipeSortBy');
 		if (!pipeSortBy) {
-			pipeSortBy = 'name';
+			pipeSortBy = defaultPipeSortBy;
 		}
 		$scope.pipeSortBy = pipeSortBy;
 		$scope.$watch('pipeSortBy', function(newValue, oldValue){
@@ -262,11 +278,20 @@
 			$cookies.putObject('pipeSortBy', newValue);
 		}, true);
 
+		var defaultFilter = {
+			public: true
+		};
 		var filter = $cookies.getObject('filter');
 		if (!filter) {
-			filter = {};
+			filter = angular.copy(defaultFilter);
 		}
 		$scope.filter = filter;
+
+		$scope.resetFilter = function() {
+			$scope.filter = angular.copy(defaultFilter);
+			$scope.pipeSortBy = defaultPipeSortBy;
+		}
+
 		$scope.$watch('filter', function(newValue, oldValue){
 			// save the value to a cookie
 			$cookies.putObject('filter', newValue);
@@ -286,17 +311,6 @@
 			return status && status != filter;
 		}
 
-		$scope.getPipes = function() {
-			$http({
-				method: 'GET',
-				url: '/c/api/v1/teams/main/pipelines'
-			}).then(function(response) {
-				$scope.setPipes(response.data);
-			}, function(err) {
-				console.error(err);
-			});
-		}
-
 		// get and set the env
 		$scope.getJSEnv = function() {
 			$http({
@@ -312,60 +326,86 @@
 			$scope.jsenv = jsenv;
 		}
 
+		$scope.getPipes = function() {
+			$http({
+				method: 'GET',
+				url: '/c/api/v1/teams/main/pipelines'
+			}).then(function(response) {
+				$scope.setPipes(response.data);
+			}, function(err) {
+				console.error(err);
+			});
+		}
+
 		$scope.setPipes = function(pipes) {
 			pipes.forEach(function(pipe, index) {
 				pipes[index].aggregateStatus = 'no-builds';
 			});
-
-			var list = [];
-			pipes.forEach(function(pipe, index) {
-				if (!pipe.paused) {
-					var promise = $http({
-						method: 'GET',
-						url: '/c/api/v1' + pipe.url + '/jobs'
-					}).then(function(jobsResponse) {
-						pipe.jobs = jobsResponse.data;
-						var status = null;
-						var pending = null;
-						jobsResponse.data.forEach(function(job) {
-							if (job.finished_build) {
-								if (status === null) {
-									status = job.finished_build.status;
-								} else if(status === 'succeeded' && job.finished_build.status === 'failed') {
-									status = job.finished_build.status;
-								} else if(job.finished_build.status === 'errored') {
-									status = job.finished_build.status;
-								} else if(job.finished_build.status === 'aborted') {
-									status = job.finished_build.status;
-								}
-							}
-
-							if (pending === null && job.next_build !== null) {
-								pending = job.next_build.status;
-							}
-						});
-
-						if (status !== null) {
-							pipe.aggregateStatus = status;
-						} else {
-							pipe.aggregateStatus = 'no-builds';
-						}
-						pipe.pending = pending;
-
-						return pipe;
-					}, function(err) {
-						console.error(err);
-					});
-					list.push(promise);
-				} else {
-					list.push(Promise.resolve(pipe));
-				}
-			});
 			if ($scope.pipelines === null || $scope.pipelines === undefined) {
 				$scope.pipelines = pipes;
 			}
-			Promise.all(list).then((pipes) => {
-				$scope.pipelines = pipes;
+
+			$timeout(function() {
+				var list = [];
+				pipes.forEach(function(pipe, index) {
+					if (!pipe.paused) {
+						var promise = $http({
+							method: 'GET',
+							url: '/c/api/v1' + pipe.url + '/jobs'
+						}).then(function(jobsResponse) {
+							pipe.jobs = jobsResponse.data;
+
+							// filter job names with regex
+							var jobPattern = $scope.jsenv.JS_JOB_NAME_REGEX || false;
+							if (jobPattern) {
+								var flags = $scope.jsenv.JS_JOB_NAME_REGEX_FLAGS;
+								var regex = new RegExp(jobPattern, flags);
+								// filter the jobs based on the pattern regex
+								pipe.jobs = pipe.jobs.filter(function(job) {
+									return job.name.match(regex);
+								});
+							}
+
+							// setup an aggregate status
+							var status = null;
+							var pending = null;
+							pipe.jobs.forEach(function(job) {
+								if (job.finished_build) {
+									if (status === null) {
+										status = job.finished_build.status;
+									} else if(status === 'succeeded' && job.finished_build.status === 'failed') {
+										status = job.finished_build.status;
+									} else if(job.finished_build.status === 'errored') {
+										status = job.finished_build.status;
+									} else if(job.finished_build.status === 'aborted') {
+										status = job.finished_build.status;
+									}
+								}
+
+								if (pending === null && job.next_build !== null) {
+									pending = job.next_build.status;
+								}
+							});
+
+							if (status !== null) {
+								pipe.aggregateStatus = status;
+							} else {
+								pipe.aggregateStatus = 'no-builds';
+							}
+							pipe.pending = pending;
+
+							return pipe;
+						}, function(err) {
+							console.error(err);
+						});
+						list.push(promise);
+					} else {
+						list.push(Promise.resolve(pipe));
+					}
+				});
+				Promise.all(list).then((pipes) => {
+					$scope.pipelines = pipes;
+				});
 			});
 		}
 

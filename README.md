@@ -23,16 +23,14 @@ docker run --rm -it -p 8888:8888 yourcompany/concourse-workbench
 
 # Env Variables
 
-There are two types of variables:
-
-1. JS_* - these are env variables that can be set either when using docker run, or in a Dockerfile, and will be exposed to the running application page.
-
-2. CONCOURSE_URL_* - these are env variables used by the internal service to determine where to send requests.
-
-  - *_HOST - sets the hostname to query
-
-  - *_PROTOCOL - can be changed to http, if required
-
+| Variable                | Required | Description                                                                                                                                                                                                                                                                                               |
+|-------------------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| JS_INTERVAL             | No       | Controls the interval for a refresh of pipe status indicators. Note: the more pipelines you have the higher I would recommend this number be.                                                                                                                                                             |
+| JS_JOB_NAME_REGEX       | No       | Controls a regex pattern to match job names against. If a job does not match this pattern it is ignored. A good use case for this when a job exists, such as checking pull requests, and it is expected to fail periodically, but its failure does not represent a failure of the main build job or jobs. |
+| JS_JOB_NAME_REGEX_FLAGS | No       | Allows flags such as "i" to be set for the job name reject                                                                                                                                                                                                                                                |
+| CONCOURSE_URL_PROTOCOL  | No       | Sets the concourse url protocol. This should always be set to https, unless you are running this tool internally and really need http.                                                                                                                                                                    |
+| CONCOURSE_URL_HOST      | Yes      | Sets the concourse url host. eg. concourse.yourcompany.com                                                                                                                                                                                                                                                |
+|                         |          |                                                                                                                                                                                                                                                                                                           |
 
 # Unsupported (right now)
 - Running a monitor against a concourse instance running within a directory eg. http://127.0.0.1/concourse/
