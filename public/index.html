@@ -99,6 +99,15 @@
 			.btn-reset {
 				cursor: pointer;
 			}
+			.filterName.regex:before {
+				content: "/";
+				margin-right: -0.5em;
+			}
+			.filterName.regex:after {
+				content: "/";
+				margin-left: -0.5em;
+				margin-right: -0.5em;
+			}
 		</style>
 	</head>
 	<body ng-app="concourseNATS" ng-controller="concourseNATS">
@@ -118,7 +127,7 @@
 				<span class="btn-hamburger"><i class="fa fa-heartbeat"></i></span>
 				<table>
 					<tr>
-						<td ng-repeat="pipe in pipelines | filter: getPipeFilter() | orderByPipeStatus" ng-class="getPipeStatusClasses(pipe)" title="{{getPipeStatus(pipe)}}"></td>
+						<td ng-repeat="pipe in pipelines | pipeFilters: getPipeFilter() | orderByPipeStatus" ng-class="getPipeStatusClasses(pipe)" title="{{getPipeStatus(pipe)}}"></td>
 					</tr>
 				</table>
 				<span class="btn-hamburger"><i class="fa fa-heartbeat"></i></span>
@@ -145,11 +154,16 @@
 						<li class="filters">
 							<div class="filter">
 								<label for="filterTeamName">Team:</label>
-								<input id="filterTeamName" type="text" ng-model="filter.team_name">
+								<input id="filterTeamName" type="text" ng-model="filter.team_name" size="13">
 							</div>
 							<div class="filter">
 								<label for="filterName">Name:</label>
-								<input id="filterName" type="text" ng-model="filter.name">
+								<span ng-class="{ filterName: true, regex: filter.custom.nameRegex }">
+									<input id="filterName" type="text" ng-model="filter.name" size="13">
+								</span>
+								<input ng-hide="!filter.custom.nameRegex" type="text" ng-model="filter.custom.nameRegexFlags" size="2">
+								<input id="filterNameRegex" type="checkbox" ng-model="filter.custom.nameRegex">
+								<label for="filterNameRegex">Regex</label>
 							</div>
 							<div class="filter">
 								<label for="filterPaused">Paused:</label>
@@ -191,7 +205,7 @@
 				</div>
 				<div id="content">
 					<div class="pipes clearfix">
-						<div ng-repeat="pipe in pipelines | filter: getPipeFilter() | orderBy:['paused', pipeSortBy]" class="pipe-wrapper">
+						<div ng-repeat="pipe in pipelines | pipeFilters: getPipeFilter() | orderBy:['paused', pipeSortBy]" class="pipe-wrapper">
 							<a my-pipeline href="/r/{{ pipe.url }}" class="pipe" ng-class="getPipeClasses(pipe)"></a>
 						</div>
 					</div>
@@ -236,6 +250,39 @@
 			return filtered;
 		};
 	});
+
+	app.filter('pipeFilters', function ($filter) {
+		return function(items, filterz) {
+			if (!items) {
+				return;
+			}
+			// ensure we have a copy of the filter, rather than the original
+			var filter = angular.copy(filterz);
+			filter.custom = filter.custom || {};
+
+			// rip off the custom stuff, and prepare the filters
+			var custom = angular.copy(filter.custom);
+			delete filter.custom;
+			if (custom.nameRegex) {
+				delete filter.name;
+			}
+
+			// run the normal filter
+			var result = $filter('filter').apply(this, [items, filter]);
+
+			// are there still things we can filter?
+			if (result && result.length > 0) {
+				// run custom filters
+				result = result.filter(function(pipe) {
+					var regex = new RegExp(filterz.name, custom.regexNameFlags);
+					return regex.test(pipe.name);
+				});
+			}
+
+			return result;
+		};
+	});
+
     app.controller('concourseNATS', function($scope, $window, $http, $cookies, $timeout) {
 
 		$scope.sidebarToggle = function() {
@@ -279,7 +326,10 @@
 		}, true);
 
 		var defaultFilter = {
-			public: true
+			public: true,
+			custom: {
+				nameRegexFlags: 'i'
+			}
 		};
 		var filter = $cookies.getObject('filter');
 		if (!filter) {
@@ -298,6 +348,7 @@
 		}, true);
 		$scope.getPipeFilter = function() {
 			var filters = angular.extend({}, $scope.filter);
+			delete filters.nameRegex;
 			if (filters.aggregateStatus === 'pending' || filters.aggregateStatus === 'started') {
 				delete filters.aggregateStatus;
 				filters.pending = $scope.filter.aggregateStatus;
@@ -362,7 +413,7 @@
 								var regex = new RegExp(jobPattern, flags);
 								// filter the jobs based on the pattern regex
 								pipe.jobs = pipe.jobs.filter(function(job) {
-									return job.name.match(regex);
+									return regex.test(job.name);
 								});
 							}
 
@@ -405,6 +456,7 @@
 				});
 				Promise.all(list).then((pipes) => {
 					$scope.pipelines = pipes;
+					console.log('setting isLoading');
 				});
 			});
 		}
