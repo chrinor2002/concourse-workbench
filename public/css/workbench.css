@@ -1,0 +1,94 @@
+.content-frame {
+    padding-top: 10px;
+}
+.pipe-wrapper {
+    line-height: 1.5em;
+    float: left;
+    margin: 1.5em;
+    width: 150px;
+    height: 9em; /* 1.5 * 4 + 1.5 + 1.5 */
+}
+.pipe {
+    display: block;
+    position: relative;
+    width: 100%;
+    height: auto;
+    max-height: 9em; /* 1.5 * 4 + 1.5 + 1.5 */
+}
+.pipe .js-animation-wrapper {
+    height: 100%;
+    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+.pipe .animation-medium {
+    height: 100%;
+    width: 100%;
+}
+.pipe.paused {
+    opacity: 0.5;
+}
+.pipe .job {
+    height: 5px;
+    margin-bottom: 1px;
+    width: 100%;
+}
+.pipe .text {
+    padding: 1.5em;
+}
+.sidebar .filters {
+    padding: 1em;
+    text-align: left;
+}
+.sidebar .filters .filter{
+    padding: 0.25em;
+}
+.sidebar .filters .filter:first-child{
+    padding-top: 0;
+}
+
+#status-graph-top-bar {
+    z-index: 110;
+    position: fixed;
+    top: 0;
+    right: 20%;
+    left: 20%;
+    height: 40px;
+    overflow: hidden;
+}
+#status-graph-top-bar .btn-hamburger {
+    width: 5%;
+    padding-left: 0;
+    padding-right: 0;
+    float: left;
+    cursor: auto;
+    text-align: center;
+}
+#status-graph-top-bar table {
+    width: 90%;
+    height: 40px;
+    border-collapse: collapse;
+    float: left;
+}
+#status-graph-top-bar table td {
+    box-sizing: border-box;
+}
+#status-graph-top-bar table td.success:last-of-type {
+    border: 1px solid blue;
+}
+.reset {
+    text-align: center;
+}
+.btn-reset {
+    cursor: pointer;
+}
+.filterName.regex:before {
+    content: "/";
+    margin-right: -0.5em;
+}
+.filterName.regex:after {
+    content: "/";
+    margin-left: -0.5em;
+    margin-right: -0.5em;
+}
