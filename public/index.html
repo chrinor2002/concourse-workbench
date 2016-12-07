@@ -29,11 +29,13 @@
 			</div>
 			<div id="status-graph-top-bar">
 				<span class="btn-hamburger"><i class="fa fa-heartbeat"></i></span>
-				<table>
-					<tr>
-						<td ng-repeat="pipe in pipelines | pipeFilters: getPipeFilter() | orderByPipeStatus" ng-class="getPipeStatusClasses(pipe)" title="{{getPipeStatus(pipe)}}"></td>
-					</tr>
-				</table>
+				<div class="status-bar">
+					<table>
+						<tr>
+							<td ng-repeat="pipe in pipelines | pipeFilters: getPipeFilter() | orderByPipeStatus" ng-class="getPipeStatusClasses(pipe)" title="{{getPipeStatus(pipe)}}"></td>
+						</tr>
+					</table>
+				</div>
 				<span class="btn-hamburger"><i class="fa fa-heartbeat"></i></span>
 			</div>
 			<div class="bottom">
@@ -110,7 +112,7 @@
 				<div id="content">
 					<div class="pipes clearfix">
 						<div ng-repeat="pipe in pipelines | pipeFilters: getPipeFilter() | orderBy:['paused', pipeSortBy]" class="pipe-wrapper">
-							<a my-pipeline href="/r/{{ pipe.url }}" class="pipe" ng-class="getPipeClasses(pipe)"></a>
+							<div my-pipeline class="pipe job-animation-node"></div>
 						</div>
 					</div>
 				</div>
@@ -200,8 +202,8 @@
 		$scope.getPipeClasses = function(pipe) {
 			var classes = $scope.getPipeStatusClasses(pipe);
 			return angular.extend(classes, {
-				pipe: true,
-				'job-animation-node': true
+				//pipe: true,
+				//'job-animation-node': true
 			});
 		}
 
@@ -215,6 +217,32 @@
 				pending: pipe && pipe.pending == 'pending',
 				started: pipe && pipe.pending == 'started',
 				paused: pipe && pipe.paused
+			};
+		}
+
+		$scope.getJobClasses = function(job) {
+			var classes = $scope.getJobStatusClasses(job);
+			return angular.extend(classes, {
+				job: true
+			});
+		}
+
+		$scope.getJobTextClasses = function(job) {
+			var classes = $scope.getJobStatusClasses(job);
+			return angular.extend(classes, {
+				text: true
+			});
+		}
+
+		$scope.getJobStatusClasses = function(job) {
+			return {
+				'no-builds': job && job.status == 'no-builds',
+				succeeded: job && job.status == 'succeeded',
+				failed: job && job.status == 'failed',
+				errored: job && job.status == 'errored',
+				aborted: job && job.status == 'aborted',
+				pending: job && job.pending == 'pending',
+				started: job && job.pending == 'started'
 			};
 		}
 
@@ -325,7 +353,9 @@
 							var status = null;
 							var pending = null;
 							pipe.jobs.forEach(function(job) {
+								job.status = 'no-builds';
 								if (job.finished_build) {
+									job.status = job.finished_build.status;
 									if (status === null) {
 										status = job.finished_build.status;
 									} else if(status === 'succeeded' && job.finished_build.status === 'failed') {
@@ -339,6 +369,7 @@
 
 								if (pending === null && job.next_build !== null) {
 									pending = job.next_build.status;
+									job.pending = job.next_build.status;
 								}
 							});
 

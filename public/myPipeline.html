@@ -1,6 +1,17 @@
-<div class="text">
-{{ pipe.name }}
-</div>
+<a href="/r/{{ pipe.url }}" ng-class="getPipeClasses(pipe)">
+	<div class="text">
+	{{ pipe.name }}
+	</div>
+</a>
 <div class="js-animation-wrapper">
 	<div class="animation animation-medium"></div>
+</div>
+<div class="status-bar">
+	<table>
+		<tr>
+			<td ng-repeat="job in pipe.jobs" ng-class="getJobClasses(job)" title="{{ job.name }}">
+				<span class="text" ng-class="getJobTextClasses(job)">{{ job.name }}</span>
+			</td>
+		</tr>
+	</table>
 </div>
