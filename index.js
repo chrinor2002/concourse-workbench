@@ -106,6 +106,14 @@ server.register([
 
     server.route({
         method: 'GET',
+        path: '/search/{pattern*}',
+        handler: {
+            file: 'public/index.html'
+        }
+    });
+
+    server.route({
+        method: 'GET',
         path: '/e',
         config: {
             handler: getEnv

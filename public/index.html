@@ -126,7 +126,7 @@
 	});
 	app.directive('myPipeline', function() {
 		return {
-			templateUrl: 'myPipeline.html'
+			templateUrl: '/myPipeline.html'
 		};
 	});
 	app.filter('orderByPipeStatus', function () {
@@ -309,11 +309,18 @@
 			$scope.jsenv = jsenv;
 		}
 
+		var pathSearch = $window.location.pathname.split('/').slice(1);
+		pathSearch = pathSearch[0] === 'search' ? pathSearch.slice(1).join('/') : false;
 		$scope.getPipes = function() {
 			$http({
 				method: 'GET',
 				url: '/c/api/v1/teams/main/pipelines'
 			}).then(function(response) {
+				if (pathSearch) {
+					response.data = response.data.filter(function(item) {
+						return item.name.includes(pathSearch);
+					});
+				}
 				$scope.setPipes(response.data);
 			}, function(err) {
 				console.error(err);

@@ -21,6 +21,22 @@ docker build . -t yourcompany/concourse-workbench
 docker run --rm -it -p 8888:8888 yourcompany/concourse-workbench
 ```
 
+# Search Path
+
+A feature was requested that allows an admin to setup pre-filtered pages. The path /search/{substring} allows this.
+
+# Paths
+Several paths exist in the server that can be queried:
+
+| Path                    | Description                                                                                                                                                             |
+|-------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| /                       | The main root of the single page web application.                                                                                                                       |
+| /search/{pattern*}      | A secondary single page web application that filters the pipelines. This filter is applied after fetching a list of pipelines, and is applied using substring matching. |
+| /e                      | A route defined to allow the main web page to retrieve the environment variables prefixed with JS_.                                                                     |
+| /c/{apipath*}           | A route specifically used to forward API requests to concourse.                                                                                                         |
+| /c/public/{publicpath*} | A route used for getting public paths from concourse. This is specifically used for fetching CSS and fonts.                                                             |
+| /r/{apipath*}           | A route for redirection to concourse. This is used to allow a path returned by concourse to have a relative or absolute location to be redirected to.                   |
+
 # Env Variables
 
 | Variable                | Required | Description                                                                                                                                                                                                                                                                                               |
