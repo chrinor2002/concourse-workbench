@@ -11,104 +11,8 @@
 
 		<link href="/c/public/main.css" media="all" rel="stylesheet" type="text/css">
 		<link href="/css/clearfix.css" media="all" rel="stylesheet" type="text/css">
+		<link href="/css/workbench.css" media="all" rel="stylesheet" type="text/css">
 		<link id="favicon" rel="icon" type="image/png" href="/c/public/images/favicon.png" />
-
-		<style>
-			.content-frame {
-				padding-top: 10px;
-			}
-			.pipe-wrapper {
-				line-height: 1.5em;
-				float: left;
-				margin: 1.5em;
-				width: 150px;
-				height: 9em; /* 1.5 * 4 + 1.5 + 1.5 */
-			}
-			.pipe {
-				display: block;
-				position: relative;
-				width: 100%;
-				height: auto;
-				max-height: 9em; /* 1.5 * 4 + 1.5 + 1.5 */
-			}
-			.pipe .js-animation-wrapper {
-				height: 100%;
-				width: 100%;
-				position: absolute;
-				top: 0;
-				left: 0;
-			}
-			.pipe .animation-medium {
-				height: 100%;
-				width: 100%;
-			}
-			.pipe.paused {
-				opacity: 0.5;
-			}
-			.pipe .job {
-				height: 5px;
-				margin-bottom: 1px;
-				width: 100%;
-			}
-			.pipe .text {
-				padding: 1.5em;
-			}
-			.sidebar .filters {
-				padding: 1em;
-				text-align: left;
-			}
-			.sidebar .filters .filter{
-				padding: 0.25em;
-			}
-			.sidebar .filters .filter:first-child{
-				padding-top: 0;
-			}
-
-			#status-graph-top-bar {
-				z-index: 110;
-				position: fixed;
-				top: 0;
-				right: 20%;
-				left: 20%;
-				height: 40px;
-				overflow: hidden;
-			}
-			#status-graph-top-bar .btn-hamburger {
-				width: 5%;
-				padding-left: 0;
-				padding-right: 0;
-				float: left;
-				cursor: auto;
-				text-align: center;
-			}
-			#status-graph-top-bar table {
-				width: 90%;
-				height: 40px;
-				border-collapse: collapse;
-				float: left;
-			}
-			#status-graph-top-bar table td {
-				box-sizing: border-box;
-			}
-			#status-graph-top-bar table td.success:last-of-type {
-				border: 1px solid blue;
-			}
-			.reset {
-				text-align: center;
-			}
-			.btn-reset {
-				cursor: pointer;
-			}
-			.filterName.regex:before {
-				content: "/";
-				margin-right: -0.5em;
-			}
-			.filterName.regex:after {
-				content: "/";
-				margin-left: -0.5em;
-				margin-right: -0.5em;
-			}
-		</style>
 	</head>
 	<body ng-app="concourseNATS" ng-controller="concourseNATS">
 		<div class="content-frame">
@@ -125,11 +29,13 @@
 			</div>
 			<div id="status-graph-top-bar">
 				<span class="btn-hamburger"><i class="fa fa-heartbeat"></i></span>
-				<table>
-					<tr>
-						<td ng-repeat="pipe in pipelines | pipeFilters: getPipeFilter() | orderByPipeStatus" ng-class="getPipeStatusClasses(pipe)" title="{{getPipeStatus(pipe)}}"></td>
-					</tr>
-				</table>
+				<div class="status-bar">
+					<table>
+						<tr>
+							<td ng-repeat="pipe in pipelines | pipeFilters: getPipeFilter() | orderByPipeStatus" ng-class="getPipeStatusClasses(pipe)" title="{{getPipeStatus(pipe)}}"></td>
+						</tr>
+					</table>
+				</div>
 				<span class="btn-hamburger"><i class="fa fa-heartbeat"></i></span>
 			</div>
 			<div class="bottom">
@@ -206,7 +112,7 @@
 				<div id="content">
 					<div class="pipes clearfix">
 						<div ng-repeat="pipe in pipelines | pipeFilters: getPipeFilter() | orderBy:['paused', pipeSortBy]" class="pipe-wrapper">
-							<a my-pipeline href="/r/{{ pipe.url }}" class="pipe" ng-class="getPipeClasses(pipe)"></a>
+							<div my-pipeline class="pipe job-animation-node"></div>
 						</div>
 					</div>
 				</div>
@@ -296,8 +202,8 @@
 		$scope.getPipeClasses = function(pipe) {
 			var classes = $scope.getPipeStatusClasses(pipe);
 			return angular.extend(classes, {
-				pipe: true,
-				'job-animation-node': true
+				//pipe: true,
+				//'job-animation-node': true
 			});
 		}
 
@@ -311,6 +217,32 @@
 				pending: pipe && pipe.pending == 'pending',
 				started: pipe && pipe.pending == 'started',
 				paused: pipe && pipe.paused
+			};
+		}
+
+		$scope.getJobClasses = function(job) {
+			var classes = $scope.getJobStatusClasses(job);
+			return angular.extend(classes, {
+				job: true
+			});
+		}
+
+		$scope.getJobTextClasses = function(job) {
+			var classes = $scope.getJobStatusClasses(job);
+			return angular.extend(classes, {
+				text: true
+			});
+		}
+
+		$scope.getJobStatusClasses = function(job) {
+			return {
+				'no-builds': job && job.status == 'no-builds',
+				succeeded: job && job.status == 'succeeded',
+				failed: job && job.status == 'failed',
+				errored: job && job.status == 'errored',
+				aborted: job && job.status == 'aborted',
+				pending: job && job.pending == 'pending',
+				started: job && job.pending == 'started'
 			};
 		}
 
@@ -421,7 +353,9 @@
 							var status = null;
 							var pending = null;
 							pipe.jobs.forEach(function(job) {
+								job.status = 'no-builds';
 								if (job.finished_build) {
+									job.status = job.finished_build.status;
 									if (status === null) {
 										status = job.finished_build.status;
 									} else if(status === 'succeeded' && job.finished_build.status === 'failed') {
@@ -435,6 +369,7 @@
 
 								if (pending === null && job.next_build !== null) {
 									pending = job.next_build.status;
+									job.pending = job.next_build.status;
 								}
 							});
 
