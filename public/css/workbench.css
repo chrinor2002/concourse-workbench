@@ -26,6 +26,10 @@
     height: 100%;
     width: 100%;
 }
+.pipe .animation-small {
+    height: 100%;
+    width: 100%;
+}
 .pipe a {
     display: block;
     padding: 1.5em;
@@ -120,5 +124,14 @@
     z-index: 200;
 }
 .status-bar td:hover .text {
+    display: block;
+}
+.pipe .status-bar .js-animation-wrapper {
+    display: none;
+}
+.pipe .status-bar .started .js-animation-wrapper {
+    display: block;
+}
+.pipe .status-bar .pending .js-animation-wrapper {
     display: block;
 }

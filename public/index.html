@@ -112,7 +112,7 @@
 				<div id="content">
 					<div class="pipes clearfix">
 						<div ng-repeat="pipe in pipelines | pipeFilters: getPipeFilter() | orderBy:['paused', pipeSortBy]" class="pipe-wrapper">
-							<div my-pipeline class="pipe job-animation-node"></div>
+							<div my-pipeline class="pipe job-animation-node" ng-class="getPipeClasses(pipe)"></div>
 						</div>
 					</div>
 				</div>
@@ -208,6 +208,7 @@
 		}
 
 		$scope.getPipeStatusClasses = function(pipe) {
+			console.log(pipe);
 			return {
 				'no-builds': pipe && pipe.aggregateStatus == 'no-builds',
 				succeeded: pipe && pipe.aggregateStatus == 'succeeded',
@@ -410,13 +411,13 @@
 		$scope.$watch('jsenv', function(newValue, oldValue) {
 			var existingInteval = refreshInterval !== null && refreshInterval !== undefined;
 			if (newValue && newValue.JS_INTERVAL > 0 && !existingInteval) {
-				refreshInterval = setInterval($scope.getPipes, newValue.JS_INTERVAL);
+				//refreshInterval = setInterval($scope.getPipes, newValue.JS_INTERVAL);
 			} else if (newValue && newValue.JS_INTERVAL > 0 && existingInteval) {
-				clearInterval(existingInteval);
-				refreshInterval = setInterval($scope.getPipes, newValue.JS_INTERVAL);
+				//clearInterval(existingInteval);
+				//refreshInterval = setInterval($scope.getPipes, newValue.JS_INTERVAL);
 			} else if (existingInteval) {
-				clearInterval(existingInteval);
-				delete refreshInterval;
+				//clearInterval(existingInteval);
+				//delete refreshInterval;
 			}
 		});
     });

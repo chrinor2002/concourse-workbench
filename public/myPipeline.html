@@ -10,7 +10,11 @@
 	<table>
 		<tr>
 			<td ng-repeat="job in pipe.jobs" ng-class="getJobClasses(job)" title="{{ job.name }}">
-				<a href="/r/{{ job.url }}"></a>
+				<a href="/r/{{ job.url }}">
+					<div class="js-animation-wrapper">
+						<div class="animation animation-small"></div>
+					</div>
+				</a>
 				<span class="text" ng-class="getJobTextClasses(job)">{{ job.name }}</span>
 			</td>
 		</tr>
