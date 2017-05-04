@@ -6,6 +6,8 @@ const good = require('good');
 const _ = require('lodash');
 const url = require('url');
 
+const packageInfo = require('./package.json');
+
 const baseForward = {
     protocol: process.env.CONCOURSE_URL_PROTOCOL || 'https',
     slashes: true,
@@ -28,6 +30,12 @@ function doRedirect(request, reply) {
 function getEnv(request, reply) {
     var frontEndEnv = _.pickBy(process.env, (value, key) => {
         return _.startsWith(key, 'JS_');
+    });
+
+    _.extend(frontEndEnv, {
+        package: _.pick(packageInfo, [
+            'version'
+        ])
     });
 
     reply(frontEndEnv);

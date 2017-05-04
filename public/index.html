@@ -117,6 +117,10 @@
 					</div>
 				</div>
 			</div>
+			<table class="lower-right-info">
+				<tr><td> workbench: v<span class="number">{{ jsenv.package.version }}</span> </td></tr>
+				<tr><td> concourse: v<span class="number">{{ concourseInfo.version }}</span> </td></tr>
+			</table>
 		</div>
 	<script>
 
@@ -310,6 +314,22 @@
 			$scope.jsenv = jsenv;
 		}
 
+		// get and set the JSInfo
+		$scope.concourseInfo = { version: 'N/A' }
+		$scope.getInfo = function() {
+			$http({
+				method: 'GET',
+				url: '/c/api/v1/info'
+			}).then(function(response) {
+				$scope.setInfo(response.data);
+			}, function(err) {
+				console.error(err);
+			});
+		}
+		$scope.setInfo = function(jsinfo) {
+			$scope.concourseInfo = jsinfo;
+		}
+
 		var pathSearch = $window.location.pathname.split('/').slice(1);
 		pathSearch = pathSearch[0] === 'search' ? pathSearch.slice(1).join('/') : false;
 		$scope.getPipes = function() {
@@ -406,6 +426,7 @@
 		}
 
 		$scope.getPipes();
+		$scope.getInfo();
 		$scope.getJSEnv();
 
 		// setup auto refresh
