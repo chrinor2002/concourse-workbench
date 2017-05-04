@@ -1,7 +1,7 @@
 {
   "name": "concourse-workbench",
   "private": true,
-  "version": "0.4-beta4",
+  "version": "0.4-beta5",
   "description": "Provides a one page web application to monitor concourse job states.",
   "main": "index.js",
   "scripts": {
