@@ -208,7 +208,6 @@
 		}
 
 		$scope.getPipeStatusClasses = function(pipe) {
-			console.log(pipe);
 			return {
 				'no-builds': pipe && pipe.aggregateStatus == 'no-builds',
 				succeeded: pipe && pipe.aggregateStatus == 'succeeded',
@@ -243,7 +242,8 @@
 				errored: job && job.status == 'errored',
 				aborted: job && job.status == 'aborted',
 				pending: job && job.pending == 'pending',
-				started: job && job.pending == 'started'
+				started: job && job.pending == 'started',
+				paused: job && job.paused
 			};
 		}
 
@@ -375,8 +375,10 @@
 									}
 								}
 
-								if (pending === null && job.next_build !== null) {
-									pending = job.next_build.status;
+								if (job.next_build !== null) {
+									if (pending === null) {
+										pending = job.next_build.status;
+									}
 									job.pending = job.next_build.status;
 								}
 							});
@@ -411,13 +413,13 @@
 		$scope.$watch('jsenv', function(newValue, oldValue) {
 			var existingInteval = refreshInterval !== null && refreshInterval !== undefined;
 			if (newValue && newValue.JS_INTERVAL > 0 && !existingInteval) {
-				//refreshInterval = setInterval($scope.getPipes, newValue.JS_INTERVAL);
+				refreshInterval = setInterval($scope.getPipes, newValue.JS_INTERVAL);
 			} else if (newValue && newValue.JS_INTERVAL > 0 && existingInteval) {
-				//clearInterval(existingInteval);
-				//refreshInterval = setInterval($scope.getPipes, newValue.JS_INTERVAL);
+				clearInterval(existingInteval);
+				refreshInterval = setInterval($scope.getPipes, newValue.JS_INTERVAL);
 			} else if (existingInteval) {
-				//clearInterval(existingInteval);
-				//delete refreshInterval;
+				clearInterval(existingInteval);
+				delete refreshInterval;
 			}
 		});
     });
