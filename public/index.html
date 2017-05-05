@@ -32,7 +32,7 @@
 				<div class="status-bar">
 					<table>
 						<tr>
-							<td ng-repeat="pipe in pipelines | pipeFilters: getPipeFilter() | orderByPipeStatus" ng-class="getPipeStatusClasses(pipe)" title="{{getPipeStatus(pipe)}}"></td>
+							<td ng-repeat="pipe in pipelines | pipeFilters: getPipeFilter() | orderByPipeStatus:this" ng-class="getPipeStatusClasses(pipe)" title="{{getPipeStatus(pipe)}}"></td>
 						</tr>
 					</table>
 				</div>
@@ -70,6 +70,15 @@
 								<input ng-hide="!filter.custom.nameRegex" type="text" ng-model="filter.custom.nameRegexFlags" size="2">
 								<input id="filterNameRegex" type="checkbox" ng-model="filter.custom.nameRegex">
 								<label for="filterNameRegex">Regex</label>
+							</div>
+							<div class="filter">
+								<label for="filterJob">Job:</label>
+								<span ng-class="{ filterJob: true, regex: filterJobs.custom.nameRegex }">
+									<input id="filterJob" type="text" ng-model="filterJobs.name" size="13">
+								</span>
+								<input ng-hide="!filterJobs.custom.nameRegex" type="text" ng-model="filterJobs.custom.nameRegexFlags" size="2">
+								<input id="filterJobRegex" type="checkbox" ng-model="filterJobs.custom.nameRegex">
+								<label for="filterJobRegex">Regex</label>
 							</div>
 							<div class="filter">
 								<label for="filterPaused">Paused:</label>
@@ -133,7 +142,7 @@
 			templateUrl: '/myPipeline.html'
 		};
 	});
-	app.filter('orderByPipeStatus', function () {
+	app.filter('orderByPipeStatus', function ($filter) {
 
 		function pipeStatusNumber(pipe) {
 			if (pipe.paused) {
@@ -149,10 +158,11 @@
 			return status[pipe.aggregateStatus];
 		}
 
-		return function (items, field) {
+		return function (items, scope) {
 			var filtered = [];
 			angular.forEach(items, function(item) {
 				filtered.push(item);
+				item.aggregateStatus = scope.getPipeAggregateStatus(item, $filter);
 			});
 			filtered.sort(function (a, b) {    
 				return (pipeStatusNumber(a) > pipeStatusNumber(b) ? 1 : -1);
@@ -184,7 +194,7 @@
 			if (result && result.length > 0) {
 				// run custom filters
 				result = result.filter(function(pipe) {
-					var regex = new RegExp(filterz.name, custom.regexNameFlags);
+					var regex = new RegExp(filterz.name, custom.nameRegexFlags);
 					return regex.test(pipe.name);
 				});
 			}
@@ -193,14 +203,14 @@
 		};
 	});
 
-    app.controller('concourseNATS', function($scope, $window, $http, $cookies, $timeout) {
+    app.controller('concourseNATS', function($scope, $window, $http, $cookies, $timeout, $filter) {
 
 		$scope.sidebarToggle = function() {
 			$scope.sidebarVisible = !!!$scope.sidebarVisible;
 		}
 
 		$scope.getPipeStatus = function(pipe) {
-			return pipe.paused ? 'paused' : pipe.aggregateStatus
+			return pipe.paused ? 'paused' : $scope.getPipeAggregateStatus(pipe, $filter);
 		}
 
 		$scope.getPipeClasses = function(pipe) {
@@ -211,13 +221,49 @@
 			});
 		}
 
+		$scope.getPipeAggregateStatus = function(pipe, $filter) {
+
+			var status = null;
+			var pending = null;
+			if (pipe.jobs) {
+				var filter = $scope.getJobFilter();
+				var result = $filter('pipeFilters').apply(this, [pipe.jobs, filter]);
+				result.forEach(function(job) {
+					if (job.finished_build) {
+						if (status === null) {
+							status = job.finished_build.status;
+						} else if(status === 'succeeded' && job.finished_build.status === 'failed') {
+							status = job.finished_build.status;
+						} else if(job.finished_build.status === 'errored') {
+							status = job.finished_build.status;
+						} else if(job.finished_build.status === 'aborted') {
+							status = job.finished_build.status;
+						}
+					}
+
+					if (job.next_build !== null) {
+						if (pending === null) {
+							pending = job.next_build.status;
+						}
+					}
+				});
+			}
+
+			if (status === null) {
+				status = 'no-builds';
+			}
+
+			return status;
+		}
+
 		$scope.getPipeStatusClasses = function(pipe) {
+			var aggregateStatus = $scope.getPipeAggregateStatus(pipe, $filter);
 			return {
-				'no-builds': pipe && pipe.aggregateStatus == 'no-builds',
-				succeeded: pipe && pipe.aggregateStatus == 'succeeded',
-				failed: pipe && pipe.aggregateStatus == 'failed',
-				errored: pipe && pipe.aggregateStatus == 'errored',
-				aborted: pipe && pipe.aggregateStatus == 'aborted',
+				'no-builds': pipe && aggregateStatus == 'no-builds',
+				succeeded: pipe && aggregateStatus == 'succeeded',
+				failed: pipe && aggregateStatus == 'failed',
+				errored: pipe && aggregateStatus == 'errored',
+				aborted: pipe && aggregateStatus == 'aborted',
 				pending: pipe && pipe.pending == 'pending',
 				started: pipe && pipe.pending == 'started',
 				paused: pipe && pipe.paused
@@ -272,10 +318,22 @@
 		if (!filter) {
 			filter = angular.copy(defaultFilter);
 		}
+
+		var defaultFilterJobs = {
+			custom: {
+				nameRegexFlags: 'i'
+			}
+		};
+		var filterJobs = $cookies.getObject('filterJobs');
+		if (!filterJobs) {
+			filterJobs = angular.copy(defaultFilterJobs);
+		}
 		$scope.filter = filter;
+		$scope.filterJobs = filterJobs;
 
 		$scope.resetFilter = function() {
 			$scope.filter = angular.copy(defaultFilter);
+			$scope.filterJobs = angular.copy(defaultFilterJobs);
 			$scope.pipeSortBy = defaultPipeSortBy;
 		}
 
@@ -290,6 +348,12 @@
 				delete filters.aggregateStatus;
 				filters.pending = $scope.filter.aggregateStatus;
 			}
+
+			return filters;
+		}
+		$scope.getJobFilter = function() {
+			var filters = angular.extend({}, $scope.filterJobs);
+			delete filters.nameRegex;
 
 			return filters;
 		}
@@ -349,9 +413,6 @@
 		}
 
 		$scope.setPipes = function(pipes) {
-			pipes.forEach(function(pipe, index) {
-				pipes[index].aggregateStatus = 'no-builds';
-			});
 			if ($scope.pipelines === null || $scope.pipelines === undefined) {
 				$scope.pipelines = pipes;
 			}
@@ -377,22 +438,12 @@
 								});
 							}
 
-							// setup an aggregate status
-							var status = null;
+							// setup an status
 							var pending = null;
 							pipe.jobs.forEach(function(job) {
 								job.status = 'no-builds';
 								if (job.finished_build) {
 									job.status = job.finished_build.status;
-									if (status === null) {
-										status = job.finished_build.status;
-									} else if(status === 'succeeded' && job.finished_build.status === 'failed') {
-										status = job.finished_build.status;
-									} else if(job.finished_build.status === 'errored') {
-										status = job.finished_build.status;
-									} else if(job.finished_build.status === 'aborted') {
-										status = job.finished_build.status;
-									}
 								}
 
 								if (job.next_build !== null) {
@@ -403,11 +454,6 @@
 								}
 							});
 
-							if (status !== null) {
-								pipe.aggregateStatus = status;
-							} else {
-								pipe.aggregateStatus = 'no-builds';
-							}
 							pipe.pending = pending;
 
 							return pipe;

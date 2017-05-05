@@ -61,6 +61,10 @@
     padding-top: 0;
 }
 
+.content-frame .top-bar {
+    z-index: 110;
+}
+
 #status-graph-top-bar {
     z-index: 110;
     position: fixed;
@@ -92,11 +96,11 @@
 .btn-reset {
     cursor: pointer;
 }
-.filterName.regex:before {
+.filterName.regex:before, .filterJob.regex:before {
     content: "/";
     margin-right: -0.5em;
 }
-.filterName.regex:after {
+.filterName.regex:after, .filterJob.regex:after {
     content: "/";
     margin-left: -0.5em;
     margin-right: -0.5em;
