@@ -32,7 +32,7 @@
 				<div class="status-bar">
 					<table>
 						<tr>
-							<td ng-repeat="pipe in pipelines | pipeFilters: getPipeFilter() | orderByPipeStatus:this" ng-class="getPipeStatusClasses(pipe)" title="{{getPipeStatus(pipe)}}"></td>
+							<td ng-repeat="pipe in pipelines | pipeFilters: getPipeFilter():'pipe':this | orderByPipeStatus:this" ng-class="getPipeStatusClasses(pipe)" title="{{getPipeStatus(pipe)}}"></td>
 						</tr>
 					</table>
 				</div>
@@ -91,21 +91,19 @@
 							<div class="filter">
 								<label>Job Status:</label><br/>
 
-								<input id="filterAggregateStatusAny" type="radio" ng-model="filter.aggregateStatus" value="">
-								<label for="filterAggregateStatusAny">Any</label><br/>
-								<input id="filterAggregateStatusFailed" type="radio" ng-model="filter.aggregateStatus" value="failed">
+								<input id="filterAggregateStatusFailed" type="checkbox" ng-model="filter.aggregateStatus.failed" value="failed">
 								<label for="filterAggregateStatusFailed">Failed</label><br/>
-								<input id="filterAggregateStatusErrored" type="radio" ng-model="filter.aggregateStatus" value="errored">
+								<input id="filterAggregateStatusErrored" type="checkbox" ng-model="filter.aggregateStatus.errored" value="errored">
 								<label for="filterAggregateStatusErrored">Errored</label><br/>
-								<input id="filterAggregateStatusAborted" type="radio" ng-model="filter.aggregateStatus" value="aborted">
+								<input id="filterAggregateStatusAborted" type="checkbox" ng-model="filter.aggregateStatus.aborted" value="aborted">
 								<label for="filterAggregateStatusAborted">Aborted</label><br/>
-								<input id="filterAggregateStatusSucceeded" type="radio" ng-model="filter.aggregateStatus" value="succeeded">
+								<input id="filterAggregateStatusSucceeded" type="checkbox" ng-model="filter.aggregateStatus.succeeded" value="succeeded">
 								<label for="filterAggregateStatusSucceeded">Succeeded</label><br/>
-								<input id="filterAggregateStatusNoBuilds" type="radio" ng-model="filter.aggregateStatus" value="no-builds">
+								<input id="filterAggregateStatusNoBuilds" type="checkbox" ng-model="filter.aggregateStatus['no-builds']" value="no-builds">
 								<label for="filterAggregateStatusNoBuilds">No-Builds</label><br/>
-								<input id="filterAggregateStatusPending" type="radio" ng-model="filter.aggregateStatus" value="pending">
+								<input id="filterAggregateStatusPending" type="checkbox" ng-model="filter.aggregateStatus.pending" value="pending">
 								<label for="filterAggregateStatusPending">Pending</label><br/>
-								<input id="filterAggregateStatusStarted" type="radio" ng-model="filter.aggregateStatus" value="started">
+								<input id="filterAggregateStatusStarted" type="checkbox" ng-model="filter.aggregateStatus.started" value="started">
 								<label for="filterAggregateStatusStarted">Started</label><br/>
 							</div>
 						</li>
@@ -120,7 +118,7 @@
 				</div>
 				<div id="content">
 					<div class="pipes clearfix">
-						<div ng-repeat="pipe in pipelines | pipeFilters: getPipeFilter() | orderBy:['paused', pipeSortBy]" class="pipe-wrapper">
+						<div ng-repeat="pipe in pipelines | pipeFilters: getPipeFilter():'pipe':this | orderBy:['paused', pipeSortBy]" class="pipe-wrapper">
 							<div my-pipeline class="pipe job-animation-node" ng-class="getPipeClasses(pipe)"></div>
 						</div>
 					</div>
@@ -155,14 +153,14 @@
 				'aborted': 8,
 				'no-builds': 9
 			};
-			return status[pipe.aggregateStatus];
+			return status[pipe._aggregateStatus];
 		}
 
 		return function (items, scope) {
 			var filtered = [];
 			angular.forEach(items, function(item) {
 				filtered.push(item);
-				item.aggregateStatus = scope.getPipeAggregateStatus(item, $filter);
+				item._aggregateStatus = scope.getPipeAggregateStatus(item, $filter);
 			});
 			filtered.sort(function (a, b) {    
 				return (pipeStatusNumber(a) > pipeStatusNumber(b) ? 1 : -1);
@@ -171,8 +169,38 @@
 		};
 	});
 
+	function filterName(filterz, custom, pipe) {
+		// Name regex filtering
+		var regex = new RegExp(filterz.name, custom.nameRegexFlags);
+		return regex.test(pipe.name);
+	}
+
+	function filterPipe($filter, filterz, custom, scope, aggregateStatus, pipe) {
+		var nameMatch = filterName(filterz, custom, pipe);
+
+		// aggregateStatus filtering
+		var pipeAggregateStatus = scope.getPipeAggregateStatus(pipe, $filter);
+		var statusMatch = aggregateStatus[pipeAggregateStatus] === true;
+
+		// pending filter
+		var pendingMatchStrict = aggregateStatus[pipe.pending] === true;
+		var pendingMatch = pendingMatchStrict
+				|| pipe.pending === undefined
+				|| pipe.pending === null;
+
+		return nameMatch
+			&& ((statusMatch && pendingMatch)
+				|| pendingMatchStrict);
+	}
+
+	function filterJob($filter, filterz, custom, scope, aggregateStatus, pipe) {
+		var nameMatch = filterName(filterz, custom, pipe);
+
+		return nameMatch;
+	}
+
 	app.filter('pipeFilters', function ($filter) {
-		return function(items, filterz) {
+		return function(items, filterz, type, scope) {
 			if (!items) {
 				return;
 			}
@@ -187,6 +215,10 @@
 				delete filter.name;
 			}
 
+			// remove aggregate status from the normal filter
+			var aggregateStatus = filter.aggregateStatus || {};
+			delete filter.aggregateStatus;
+
 			// run the normal filter
 			var result = $filter('filter').apply(this, [items, filter]);
 
@@ -194,8 +226,11 @@
 			if (result && result.length > 0) {
 				// run custom filters
 				result = result.filter(function(pipe) {
-					var regex = new RegExp(filterz.name, custom.nameRegexFlags);
-					return regex.test(pipe.name);
+					if (type === 'pipe') {
+						return filterPipe($filter, filterz, custom, scope, aggregateStatus, pipe);
+					} else if (type === 'job'){
+						return filterJob($filter, filterz, custom, scope, aggregateStatus, pipe);
+					}
 				});
 			}
 
@@ -227,7 +262,7 @@
 			var pending = null;
 			if (pipe.jobs) {
 				var filter = $scope.getJobFilter();
-				var result = $filter('pipeFilters').apply(this, [pipe.jobs, filter]);
+				var result = $filter('pipeFilters').apply(this, [pipe.jobs, filter, 'job', $scope]);
 				result.forEach(function(job) {
 					if (job.finished_build) {
 						if (status === null) {
@@ -247,6 +282,8 @@
 						}
 					}
 				});
+			} else {
+				//console.log(pipe.name, 'has no jobs');
 			}
 
 			if (status === null) {
@@ -310,6 +347,15 @@
 
 		var defaultFilter = {
 			public: true,
+			aggregateStatus: {
+				failed: true,
+				errored: true,
+				aborted: true,
+				succeeded: true,
+				'no-builds': true,
+				pending: true,
+				started: true
+			},
 			custom: {
 				nameRegexFlags: 'i'
 			}
@@ -339,15 +385,12 @@
 
 		$scope.$watch('filter', function(newValue, oldValue){
 			// save the value to a cookie
+			console.log(newValue.aggregateStatus);
 			$cookies.putObject('filter', newValue);
 		}, true);
 		$scope.getPipeFilter = function() {
 			var filters = angular.extend({}, $scope.filter);
 			delete filters.nameRegex;
-			if (filters.aggregateStatus === 'pending' || filters.aggregateStatus === 'started') {
-				delete filters.aggregateStatus;
-				filters.pending = $scope.filter.aggregateStatus;
-			}
 
 			return filters;
 		}
@@ -356,11 +399,6 @@
 			delete filters.nameRegex;
 
 			return filters;
-		}
-
-		$scope.isFilterDisabled = function(filter) {
-			var status = $scope.getPipeFilter().aggregateStatus;
-			return status && status != filter;
 		}
 
 		// get and set the env

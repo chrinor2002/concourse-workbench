@@ -9,7 +9,7 @@
 <div class="status-bar">
 	<table>
 		<tr>
-			<td ng-repeat="job in pipe.jobs | pipeFilters: getJobFilter()" ng-class="getJobClasses(job)" title="{{ job.name }}">
+			<td ng-repeat="job in pipe.jobs | pipeFilters: getJobFilter():'job':this" ng-class="getJobClasses(job)" title="{{ job.name }}">
 				<a href="/r/{{ job.url }}">
 					<div class="js-animation-wrapper">
 						<div class="animation animation-small"></div>
