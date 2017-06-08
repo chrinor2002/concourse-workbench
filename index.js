@@ -25,7 +25,7 @@ function doRedirect(request, reply) {
 
 /**
  * Handler for environment requests. Takes JS_* environment variables from 
- * peocess.env and passes them back to the front end.
+ * process.env and passes them back to the front end.
  */
 function getEnv(request, reply) {
     var frontEndEnv = _.pickBy(process.env, (value, key) => {
@@ -69,6 +69,52 @@ function handleConcoursePublic(err, res, request, reply, settings, ttl) {
         reply(body).headers = res.headers;
     });
 }
+
+function login() {
+    var loginUrl = new url.URL('/api/v1/teams/main/auth/token', url.format(baseForward));
+    // TODO: load from env
+    loginUrl.username = 'concourse';
+    loginUrl.password = 'garbage';
+
+    return new Promise((resolve, reject) => {
+        Wreck.get(loginUrl.toString(), { json: true }, (err, response, payload) => {
+            if (err) {
+                reject(err);
+                return
+            }
+
+            if (response.statusCode != 200) {
+                reject(new Error("login returned status: " + response.statusCode));
+                return
+            }
+
+            resolve(payload);
+        });
+    });
+}
+
+function handlePrivileged(request, reply) {
+    // Try: http://localhost:8888/c/privileged/api/v1/teams/main/pipelines/rubicon/jobs/qa-smoke/builds
+
+    // TODO: filter request based on whitelist loaded from env here
+
+    login().then((loginResponse) => {
+        request.headers.Authorization = `${loginResponse.type} ${loginResponse.value}`;
+
+        var targetUrl = url.format(_.extend({}, baseForward, {
+            pathname: request.path
+        }));
+
+        console.log("FUCK YEAH: ", targetUrl);
+
+        reply.proxy()
+
+    }).catch((err) => {
+        console.error(err);
+        reply("Login failed").code(500);
+    });
+}
+
 
 var config = {
     debug: {
@@ -170,6 +216,18 @@ server.register([
         path: '/r/{apipath*}',
         config: {
             handler: doRedirect
+        }
+    });
+
+    server.route({
+        method: 'POST',
+        path: '/c/privileged/{publicpath*}',
+        config: {
+            handler: handlePrivileged,
+            payload: {
+                output: 'stream',
+                parse: false
+            }
         }
     });
 
