@@ -261,7 +261,7 @@
 		$scope.sidebarToggle = function() {
 			$scope.sidebarVisible = !!!$scope.sidebarVisible;
 		}
-		$scope.priviligedTriggerJob = function(job) {
+		$scope.privilegedTriggerJob = function(job) {
 			var startBuildUrl = 'api/v1' + job.url + '/builds';
 			$http({
 				method: 'POST',

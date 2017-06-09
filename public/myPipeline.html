@@ -8,7 +8,7 @@
 	<ol>
 		<li ng-repeat="job in pipe.jobs | filter: privilegedActionFilter | pipeFilters: getJobFilter():'job':this" ng-class="getJobClasses(job)">
 			{{ job.name }}
-			<button class="build-action" aria-label="Trigger Build" title="Trigger Build" ng-click="priviligedTriggerJob(job)"><i class="fa fa-plus-circle"></i></button>
+			<button class="build-action" aria-label="Trigger Build" title="Trigger Build" ng-click="privilegedTriggerJob(job)"><i class="fa fa-plus-circle"></i></button>
 		</li>
 	</ol>
 </div>
