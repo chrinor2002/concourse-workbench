@@ -9,16 +9,22 @@ const url = require('url');
 const packageInfo = require('./package.json');
 
 const baseForward = {
-    protocol: process.env.CONCOURSE_URL_PROTOCOL || 'https',
+    protocol: getEnvParam('CONCOURSE_URL_PROTOCOL', 'https'),
     slashes: true,
-    host: process.env.CONCOURSE_URL_HOST
+    host: getEnvParam('CONCOURSE_URL_HOST')
+};
+const baseProxyOptions = {
+    uri: url.format(_.extend({}, baseForward, {
+        pathname: '{apipath}'
+    })),
+    passThrough: true
 };
 
 function doRedirect(request, reply) {
     var targetRedirect = _.extend({}, baseForward, {
         pathname: request.params.apipath,
         query: request.query
-    })
+    });
 
     return reply.redirect(url.format(targetRedirect));
 }
@@ -30,6 +36,11 @@ function doRedirect(request, reply) {
 function getEnv(request, reply) {
     var frontEndEnv = _.pickBy(process.env, (value, key) => {
         return _.startsWith(key, 'JS_');
+    });
+
+    // Extend with special env variables we need on both ends
+    _.extend(frontEndEnv, {
+        JS_PRIVILEGED_FILTER: getEnvParam('PRIVILEGED_FILTER')
     });
 
     _.extend(frontEndEnv, {
@@ -70,48 +81,70 @@ function handleConcoursePublic(err, res, request, reply, settings, ttl) {
     });
 }
 
-function login() {
-    var loginUrl = new url.URL('/api/v1/teams/main/auth/token', url.format(baseForward));
-    // TODO: load from env
-    loginUrl.username = 'concourse';
-    loginUrl.password = 'garbage';
+function getEnvParam(name, defaultValue) {
+    var value = process.env[name];
+    if (!_.isNil(value)) {
+        if (_.indexOf(value, '{') === 0 || _.indexOf(value, '[') === 0) {
+            value = JSON.parse(value);
+        }
+        return value;
+    }
+    return defaultValue;
+}
 
+function getBasicAuthHeaders() {
+    var basicAuth = getEnvParam('CONCOURSE_BASIC_AUTH');
+    if (_.isNil(basicAuth)) {
+        var message = 'Privileged access is disabled.';
+        var err = new Error(message);
+        err.httpCode = 401;
+        err.httpMessage = message;
+        throw err;
+    }
+    return {
+        Authorization: 'Basic ' + new Buffer(basicAuth.username + ':' + basicAuth.password).toString('base64')
+    };
+}
+
+function login() {
     return new Promise((resolve, reject) => {
-        Wreck.get(loginUrl.toString(), { json: true }, (err, response, payload) => {
+        var loginUrl = _.extend({}, baseForward, {
+            pathname: '/api/v1/teams/main/auth/token'
+        });
+
+        Wreck.get(url.format(loginUrl), {
+            headers: getBasicAuthHeaders(),
+            json: true
+        }, (err, response, payload) => {
             if (err) {
                 reject(err);
-                return
+            } else if (response.statusCode !== 200) {
+                reject(new Error('login returned status: ' + response.statusCode));
+            } else {
+                resolve(payload);
             }
-
-            if (response.statusCode != 200) {
-                reject(new Error("login returned status: " + response.statusCode));
-                return
-            }
-
-            resolve(payload);
         });
     });
 }
 
 function handlePrivileged(request, reply) {
-    // Try: http://localhost:8888/c/privileged/api/v1/teams/main/pipelines/rubicon/jobs/qa-smoke/builds
+    var filter = getEnvParam('PRIVILEGED_FILTER');
+    if (filter) {
+        var regex = new RegExp(filter.regex, filter.flags);
 
-    // TODO: filter request based on whitelist loaded from env here
+        // check that the path is "valid"
+        if (!regex.test(request.params.apipath)) {
+            reply('forbidden by administrator').code(403);
+            return;
+        }
+    }
 
     login().then((loginResponse) => {
         request.headers.Authorization = `${loginResponse.type} ${loginResponse.value}`;
-
-        var targetUrl = url.format(_.extend({}, baseForward, {
-            pathname: request.path
-        }));
-
-        console.log("FUCK YEAH: ", targetUrl);
-
-        reply.proxy()
-
+        reply.proxy(baseProxyOptions);
     }).catch((err) => {
         console.error(err);
-        reply("Login failed").code(500);
+        reply(err.httpMessage || 'login failed').code(err.httpCode || 500);
     });
 }
 
@@ -178,11 +211,7 @@ server.register([
         method: 'GET',
         path: '/c/{apipath*}',
         handler: {
-            proxy: {
-                uri: url.format(_.extend({}, baseForward, {
-                    pathname: '{apipath}'
-                }))
-            }
+            proxy: baseProxyOptions
         }
     });
 
@@ -221,7 +250,7 @@ server.register([
 
     server.route({
         method: 'POST',
-        path: '/c/privileged/{publicpath*}',
+        path: '/c/privileged/{apipath*}',
         config: {
             handler: handlePrivileged,
             payload: {

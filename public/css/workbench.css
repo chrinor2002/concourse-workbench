@@ -147,3 +147,58 @@
 .lower-right-info td{
     white-space: nowrap;
 }
+
+.pipe .job-actions-toggle {
+  top: 0;
+  right: 0;
+  opacity: 0.5;
+  position: absolute;
+  z-index: 208;
+  background: 0 0;
+  padding: 0;
+  border: 0;
+  cursor: pointer;
+  color: #fff;
+}
+.pipe .job-actions-toggle i {
+  font-size: 15px;
+  width: 1.75em;
+  line-height: 1.75em;
+}
+.pipe:hover .job-actions-toggle {
+  opacity: 1;
+}
+.pipe:hover .job-actions-toggle i:hover {
+  background: #34495E
+}
+.pipe .job-actions {
+  z-index: 210;
+  top: 0;
+  right: 0;
+  position: absolute;
+  white-space: nowrap;
+}
+.pipe .job-actions ol {
+  list-style: none;
+  margin-left: 0;
+  padding-left: 0;
+  display: none;
+  position: absolute;
+  top: 0.875em;
+  right: 0;
+  z-index: 212
+}
+.pipe .job-actions li {
+  box-shadow: -2px -2px 0 #273747, 2px -2px 0 #273747, -2px 2px 0 #273747, 2px 2px 0 #273747;
+}
+.pipe .job-actions:hover ol {
+  display: block;
+}
+.pipe .job-actions .build-action {
+  margin: 0;
+}
+.pipe .job-actions .build-action i {
+  font-size: inherit;
+  width: 1.75em;
+  line-height: 1.75em;
+}
