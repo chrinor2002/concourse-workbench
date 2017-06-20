@@ -259,7 +259,7 @@ server.register([
     });
 
     server.route({
-        method: 'POST',
+        method: ['POST', 'PUT'],
         path: '/c/privileged/{apipath*}',
         config: {
             handler: handlePrivileged,

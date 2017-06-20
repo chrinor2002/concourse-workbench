@@ -303,6 +303,36 @@
 				console.error(err);
 			});
 		}
+		$scope.privilegedPauseJob = function(job) {
+			var startBuildUrl = 'api/v1' + job.url + '/pause';
+			$http({
+				method: 'PUT',
+				url: '/c/privileged/' + startBuildUrl
+			}).then(function(response) {
+				if (response.statusCode !== 200) {
+					console.error('Unable to pause build', response.body);
+				} else {
+					// do nothing
+				}
+			}, function(err) {
+				console.error(err);
+			});
+		}
+		$scope.privilegedUnPauseJob = function(job) {
+			var startBuildUrl = 'api/v1' + job.url + '/unpause';
+			$http({
+				method: 'PUT',
+				url: '/c/privileged/' + startBuildUrl
+			}).then(function(response) {
+				if (response.statusCode !== 200) {
+					console.error('Unable to unpause build', response.body);
+				} else {
+					// do nothing
+				}
+			}, function(err) {
+				console.error(err);
+			});
+		}
 
 		$scope.getPipeStatus = function(pipe) {
 			return pipe.paused ? 'paused' : $scope.getPipeAggregateStatus(pipe, $filter);
