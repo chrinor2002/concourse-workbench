@@ -255,6 +255,33 @@
 			return result;
 		};
 	});
+	app.filter('privilegedActionFilter', function() {
+		return function (items, pipe, action, scope) {
+			if (!items) {
+				return items;
+			}
+
+			var filtering = scope.jsenv.JS_PRIVILEGED_FILTER;
+			var result = items;
+
+			if (filtering) {
+				result = result.filter(function(job) {
+					var jobFilters = filtering[pipe.name];
+					if (!jobFilters) {
+						return false;
+					}
+					var actionsFilter = jobFilters[job.name];
+					if (!actionsFilter) {
+						return false;
+					}
+
+					return !!actionsFilter[action];
+				});
+			}
+
+			return result;
+		};
+	});
 
     app.controller('concourseNATS', function($scope, $window, $http, $cookies, $timeout, $filter) {
 
@@ -438,18 +465,6 @@
 			delete filters.nameRegex;
 
 			return filters;
-		}
-		$scope.privilegedActionFilter = function(job) {
-			var matchUrl = 'api/v1' + job.url;
-
-			// only filter if we need to
-			if ($scope.jsenv.JS_PRIVILEGED_FILTER) {
-				var flags = $scope.jsenv.JS_PRIVILEGED_FILTER.flags;
-				var regex = new RegExp($scope.jsenv.JS_PRIVILEGED_FILTER.regex, flags);
-				return regex.test(matchUrl);
-			}
-
-			return true;
 		}
 
 		// get and set the env

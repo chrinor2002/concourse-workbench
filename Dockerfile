@@ -11,7 +11,7 @@ ENV CONCOURSE_URL_HOST concourse.example.com
 #ENV CONCOURSE_BASIC_AUTH {"username": "concourse", "password": "password"}
 
 # NOTE: Enable this to allow tight control over possible paths that can be executed
-#ENV PRIVILEGED_FILTER {"regex": "^.*$", "flags": "i"}
+#ENV PRIVILEGED_FILTER {"pipeline": {"job": {"trigger": true, "pause": true}}}
 
 RUN mkdir -p /concourse-workbench/
 WORKDIR /concourse-workbench/

@@ -47,7 +47,9 @@ Several paths exist in the server that can be queried:
 | CONCOURSE_URL_PROTOCOL  | No       | Sets the concourse url protocol. This should always be set to https, unless you are running this tool internally and really need http.                                                                                                                                                                    |
 | CONCOURSE_URL_HOST      | Yes      | Sets the concourse url host. eg. concourse.yourcompany.com                                                                                                                                                                                                                                                |
 | CONCOURSE_BASIC_AUTH    | No       | Sets credentials used for privileged tasks. Note, this is not exposed to the HTML frontend. Users of the frontend are not aware these crednetials exist.                                                                                                                                                  |
-| PRIVILEGED_FILTER       | No       | Sets a regex pattern to filter "runnable" tasks. These tasks are executed using the credentials set using CONCOURSE_BASIC_AUTH                                                                                                                                                                            |
+| PRIVILEGED_FILTER       | No       | Sets up a whitelist of pipeline jobs and actions that can be taken on them. These tasks are executed using the credentials set using CONCOURSE_BASIC_AUTH                                                                                                                                                 |
+
+For examples of any of these values see the Dockerfile.
 
 # Unsupported (right now)
 - Running a monitor against a concourse instance running within a directory eg. http://127.0.0.1/concourse/
