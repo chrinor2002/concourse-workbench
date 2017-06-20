@@ -190,6 +190,7 @@
 }
 .pipe .job-actions li {
   box-shadow: -2px -2px 0 #273747, 2px -2px 0 #273747, -2px 2px 0 #273747, 2px 2px 0 #273747;
+  padding-left: 0.25em;
 }
 .pipe .job-actions:hover ol {
   display: block;

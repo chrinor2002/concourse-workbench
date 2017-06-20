@@ -3,12 +3,14 @@
 	{{ pipe.name }}
 	</div>
 </a>
-<div class="job-actions">
+<div class="job-actions" ng-if="(pipe.jobs | privilegedActionFilter: pipe:'trigger':this | pipeFilters: getJobFilter():'job':this).length > 0">
 	<button class="job-actions-toggle"><i class="fa fa-plane"></i></button>
 	<ol>
-		<li ng-repeat="job in pipe.jobs | filter: privilegedActionFilter | pipeFilters: getJobFilter():'job':this" ng-class="getJobClasses(job)">
+		<li ng-repeat="job in pipe.jobs | privilegedActionFilter: pipe:'trigger':this | pipeFilters: getJobFilter():'job':this" ng-class="getJobClasses(job)">
 			{{ job.name }}
-			<button class="build-action" aria-label="Trigger Build" title="Trigger Build" ng-click="privilegedTriggerJob(job)"><i class="fa fa-plus-circle"></i></button>
+			<button ng-if="!job.paused" class="build-action" aria-label="Pause Job" title="Pause Build" ng-click="privilegedPauseJob(job)"><i class="fa fa-pause"></i></button>
+			<button ng-if="job.paused" class="build-action" aria-label="UnPause Job" title="UnPause Build" ng-click="privilegedUnPauseJob(job)"><i class="fa fa-play"></i></button>
+			<button class="build-action" aria-label="Trigger job" title="Trigger Build" ng-click="privilegedTriggerJob(job)"><i class="fa fa-plus-circle"></i></button>
 		</li>
 	</ol>
 </div>

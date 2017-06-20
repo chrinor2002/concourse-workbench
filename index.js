@@ -130,10 +130,20 @@ function login() {
 function handlePrivileged(request, reply) {
     var filter = getEnvParam('PRIVILEGED_FILTER');
     if (filter) {
-        var regex = new RegExp(filter.regex, filter.flags);
+        var regex = new RegExp('api/v1/teams/([^/]+)/pipelines/([^/]+)/jobs/([^/]+)/([^/]+)$');
+        var matches = regex.exec(request.params.apipath);
+        //var teamName = matches[1];
+        var pipelineName = matches[2];
+        var jobName = matches[3];
+        var action = _.get({
+            builds: 'trigger',
+            pause: 'pause',
+            unpause: 'pause'
+        }, matches[4]);
 
-        // check that the path is "valid"
-        if (!regex.test(request.params.apipath)) {
+        // check that the "path" is "allowed"
+        var allowed = _.get(filter, [pipelineName, jobName, action]);
+        if (!allowed) {
             reply('forbidden by administrator').code(403);
             return;
         }
@@ -249,7 +259,7 @@ server.register([
     });
 
     server.route({
-        method: 'POST',
+        method: ['POST', 'PUT'],
         path: '/c/privileged/{apipath*}',
         config: {
             handler: handlePrivileged,
