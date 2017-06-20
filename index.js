@@ -132,7 +132,6 @@ function handlePrivileged(request, reply) {
     if (filter) {
         var regex = new RegExp('api/v1/teams/([^/]+)/pipelines/([^/]+)/jobs/([^/]+)/([^/]+)$');
         var matches = regex.exec(request.params.apipath);
-        console.log(matches);
         //var teamName = matches[1];
         var pipelineName = matches[2];
         var jobName = matches[3];
