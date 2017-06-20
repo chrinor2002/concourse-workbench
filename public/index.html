@@ -261,6 +261,21 @@
 		$scope.sidebarToggle = function() {
 			$scope.sidebarVisible = !!!$scope.sidebarVisible;
 		}
+		$scope.privilegedTriggerJob = function(job) {
+			var startBuildUrl = 'api/v1' + job.url + '/builds';
+			$http({
+				method: 'POST',
+				url: '/c/privileged/' + startBuildUrl
+			}).then(function(response) {
+				if (response.statusCode !== 200) {
+					console.error('Unable to start build', response.body);
+				} else {
+					// do nothing
+				}
+			}, function(err) {
+				console.error(err);
+			});
+		}
 
 		$scope.getPipeStatus = function(pipe) {
 			return pipe.paused ? 'paused' : $scope.getPipeAggregateStatus(pipe, $filter);
@@ -423,6 +438,18 @@
 			delete filters.nameRegex;
 
 			return filters;
+		}
+		$scope.privilegedActionFilter = function(job) {
+			var matchUrl = 'api/v1' + job.url;
+
+			// only filter if we need to
+			if ($scope.jsenv.JS_PRIVILEGED_FILTER) {
+				var flags = $scope.jsenv.JS_PRIVILEGED_FILTER.flags;
+				var regex = new RegExp($scope.jsenv.JS_PRIVILEGED_FILTER.regex, flags);
+				return regex.test(matchUrl);
+			}
+
+			return true;
 		}
 
 		// get and set the env

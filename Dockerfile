@@ -7,6 +7,12 @@ ENV JS_INTERVAL 8000
 #ENV CONCOURSE_URL_PROTOCOL https
 ENV CONCOURSE_URL_HOST concourse.example.com
 
+# NOTE: Enabling this will enable privileged calls to be made to concourse.
+#ENV CONCOURSE_BASIC_AUTH {"username": "concourse", "password": "password"}
+
+# NOTE: Enable this to allow tight control over possible paths that can be executed
+#ENV PRIVILEGED_FILTER {"regex": "^.*$", "flags": "i"}
+
 RUN mkdir -p /concourse-workbench/
 WORKDIR /concourse-workbench/
 

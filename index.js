@@ -9,27 +9,38 @@ const url = require('url');
 const packageInfo = require('./package.json');
 
 const baseForward = {
-    protocol: process.env.CONCOURSE_URL_PROTOCOL || 'https',
+    protocol: getEnvParam('CONCOURSE_URL_PROTOCOL', 'https'),
     slashes: true,
-    host: process.env.CONCOURSE_URL_HOST
+    host: getEnvParam('CONCOURSE_URL_HOST')
+};
+const baseProxyOptions = {
+    uri: url.format(_.extend({}, baseForward, {
+        pathname: '{apipath}'
+    })),
+    passThrough: true
 };
 
 function doRedirect(request, reply) {
     var targetRedirect = _.extend({}, baseForward, {
         pathname: request.params.apipath,
         query: request.query
-    })
+    });
 
     return reply.redirect(url.format(targetRedirect));
 }
 
 /**
  * Handler for environment requests. Takes JS_* environment variables from 
- * peocess.env and passes them back to the front end.
+ * process.env and passes them back to the front end.
  */
 function getEnv(request, reply) {
     var frontEndEnv = _.pickBy(process.env, (value, key) => {
         return _.startsWith(key, 'JS_');
+    });
+
+    // Extend with special env variables we need on both ends
+    _.extend(frontEndEnv, {
+        JS_PRIVILEGED_FILTER: getEnvParam('PRIVILEGED_FILTER')
     });
 
     _.extend(frontEndEnv, {
@@ -69,6 +80,74 @@ function handleConcoursePublic(err, res, request, reply, settings, ttl) {
         reply(body).headers = res.headers;
     });
 }
+
+function getEnvParam(name, defaultValue) {
+    var value = process.env[name];
+    if (!_.isNil(value)) {
+        if (_.indexOf(value, '{') === 0 || _.indexOf(value, '[') === 0) {
+            value = JSON.parse(value);
+        }
+        return value;
+    }
+    return defaultValue;
+}
+
+function getBasicAuthHeaders() {
+    var basicAuth = getEnvParam('CONCOURSE_BASIC_AUTH');
+    if (_.isNil(basicAuth)) {
+        var message = 'Privileged access is disabled.';
+        var err = new Error(message);
+        err.httpCode = 401;
+        err.httpMessage = message;
+        throw err;
+    }
+    return {
+        Authorization: 'Basic ' + new Buffer(basicAuth.username + ':' + basicAuth.password).toString('base64')
+    };
+}
+
+function login() {
+    return new Promise((resolve, reject) => {
+        var loginUrl = _.extend({}, baseForward, {
+            pathname: '/api/v1/teams/main/auth/token'
+        });
+
+        Wreck.get(url.format(loginUrl), {
+            headers: getBasicAuthHeaders(),
+            json: true
+        }, (err, response, payload) => {
+            if (err) {
+                reject(err);
+            } else if (response.statusCode !== 200) {
+                reject(new Error('login returned status: ' + response.statusCode));
+            } else {
+                resolve(payload);
+            }
+        });
+    });
+}
+
+function handlePrivileged(request, reply) {
+    var filter = getEnvParam('PRIVILEGED_FILTER');
+    if (filter) {
+        var regex = new RegExp(filter.regex, filter.flags);
+
+        // check that the path is "valid"
+        if (!regex.test(request.params.apipath)) {
+            reply('forbidden by administrator').code(403);
+            return;
+        }
+    }
+
+    login().then((loginResponse) => {
+        request.headers.Authorization = `${loginResponse.type} ${loginResponse.value}`;
+        reply.proxy(baseProxyOptions);
+    }).catch((err) => {
+        console.error(err);
+        reply(err.httpMessage || 'login failed').code(err.httpCode || 500);
+    });
+}
+
 
 var config = {
     debug: {
@@ -132,11 +211,7 @@ server.register([
         method: 'GET',
         path: '/c/{apipath*}',
         handler: {
-            proxy: {
-                uri: url.format(_.extend({}, baseForward, {
-                    pathname: '{apipath}'
-                }))
-            }
+            proxy: baseProxyOptions
         }
     });
 
@@ -170,6 +245,18 @@ server.register([
         path: '/r/{apipath*}',
         config: {
             handler: doRedirect
+        }
+    });
+
+    server.route({
+        method: 'POST',
+        path: '/c/privileged/{apipath*}',
+        config: {
+            handler: handlePrivileged,
+            payload: {
+                output: 'stream',
+                parse: false
+            }
         }
     });
 

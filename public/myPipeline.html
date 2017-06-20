@@ -3,6 +3,15 @@
 	{{ pipe.name }}
 	</div>
 </a>
+<div class="job-actions">
+	<button class="job-actions-toggle"><i class="fa fa-plane"></i></button>
+	<ol>
+		<li ng-repeat="job in pipe.jobs | filter: privilegedActionFilter | pipeFilters: getJobFilter():'job':this" ng-class="getJobClasses(job)">
+			{{ job.name }}
+			<button class="build-action" aria-label="Trigger Build" title="Trigger Build" ng-click="privilegedTriggerJob(job)"><i class="fa fa-plus-circle"></i></button>
+		</li>
+	</ol>
+</div>
 <div class="js-animation-wrapper">
 	<div class="animation animation-medium"></div>
 </div>
