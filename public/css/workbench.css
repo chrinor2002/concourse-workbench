@@ -148,34 +148,47 @@
     white-space: nowrap;
 }
 
-.pipe .job-actions-toggle {
+.pipe .action-btns {
   top: 0;
   right: 0;
-  opacity: 0.5;
   position: absolute;
   z-index: 208;
+}
+
+.pipe .action-btns > * {
+  float: left;
+}
+
+.pipe .action-btn {
+  opacity: 0.5;
   background: 0 0;
   padding: 0;
   border: 0;
   cursor: pointer;
   color: #fff;
 }
-.pipe .job-actions-toggle i {
+.pipe .action-btn i {
   font-size: 15px;
   width: 1.75em;
   line-height: 1.75em;
 }
-.pipe:hover .job-actions-toggle {
+.pipe:hover .action-btn {
   opacity: 1;
 }
-.pipe:hover .job-actions-toggle i:hover {
+.pipe:hover .action-btn i:hover {
   background: #34495E
 }
+
+.pipe .job-actions-toggle {
+}
+.pipe .stats-toggle {
+}
+
 .pipe .job-actions {
   z-index: 210;
   top: 0;
   right: 0;
-  position: absolute;
+  position: relative;
   white-space: nowrap;
 }
 .pipe .job-actions ol {
@@ -202,4 +215,9 @@
   font-size: inherit;
   width: 1.75em;
   line-height: 1.75em;
+}
+
+#chart_div {
+  color: #BDC3C7;
+  background-color: #1A252F;
 }
