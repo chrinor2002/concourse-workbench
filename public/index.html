@@ -533,7 +533,7 @@
 		$scope.getPipes = function() {
 			$http({
 				method: 'GET',
-				url: '/c/api/v1/teams/main/pipelines'
+				url: '/c/api/v1/pipelines'
 			}).then(function(response) {
 				if (pathSearch) {
 					response.data = response.data.filter(function(item) {
