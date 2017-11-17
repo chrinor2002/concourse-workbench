@@ -1,4 +1,4 @@
-FROM node:4-onbuild
+FROM node:8-alpine
 
 # NOTE: JS_* are exposed in the front end JS
 ENV JS_INTERVAL 8000
