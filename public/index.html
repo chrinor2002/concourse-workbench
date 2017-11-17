@@ -528,8 +528,17 @@
 			$scope.concourseInfo = jsinfo;
 		}
 
-		var pathSearch = $window.location.pathname.split('/').slice(1);
-		pathSearch = pathSearch[0] === 'search' ? pathSearch.slice(1).join('/') : false;
+        var windowPath = $window.location.pathname.split('/').slice(1);
+        var pathTeam;
+        if (windowPath[0] === 'team') {
+            windowPath.shift(); // team
+            pathTeam = windowPath.shift();
+        }
+		var pathSearch;
+        if (windowPath[0] === 'search') {
+            windowPath.shift(); // search
+            pathSearch = windowPath.shift();
+        }
 		$scope.getPipes = function() {
 			$http({
 				method: 'GET',
@@ -540,6 +549,11 @@
 						return item.name.includes(pathSearch);
 					});
 				}
+                if (pathTeam) {
+                    response.data = response.data.filter(function(item) {
+						return item.team_name.includes(pathTeam);
+					});
+                }
 				$scope.setPipes(response.data);
 			}, function(err) {
 				console.error(err);
