@@ -6,8 +6,11 @@
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.4/lodash.min.js"></script>
 		<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular.min.js"></script>
 		<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.6/angular-cookies.min.js"></script>
+        <script src="https://www.gstatic.com/charts/loader.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js"></script>
 
 		<link href="/c/public/main.css" media="all" rel="stylesheet" type="text/css">
 		<link href="/css/clearfix.css" media="all" rel="stylesheet" type="text/css">
@@ -117,6 +120,7 @@
 					</ul>
 				</div>
 				<div id="content">
+                    <div id="chart_div"></div>
 					<div class="pipes clearfix">
 						<div ng-repeat="pipe in pipelines | pipeFilters: getPipeFilter():'pipe':this | pipeOrdering:['paused', pipeSortBy]:pipeSortBy:this" class="pipe-wrapper">
 							<div my-pipeline class="pipe job-animation-node" ng-class="getPipeClasses(pipe)"></div>
@@ -130,6 +134,7 @@
 			</table>
 		</div>
 	<script>
+    google.charts.load('current', {packages: ['corechart', 'line', 'bar']});
 
     var app = angular.module('concourseNATS', ['ngCookies']);
 	app.run(function($rootScope) {
@@ -284,6 +289,87 @@
 	});
 
     app.controller('concourseNATS', function($scope, $window, $http, $cookies, $timeout, $filter) {
+
+        $scope.showStats = function(source, forPipe) {
+
+            var promises = _.map(forPipe.jobs, function(job) {
+                return $http({
+                    method: 'GET',
+                    url: '/c/api/v1' + job.url + '/builds'
+                }).then(function(builds) {
+                    return builds;
+                }, function(err) {
+                    console.error(err);
+                });
+            });
+
+            Promise.all(promises).then(function(results) {
+                var rawData = [
+                    ['Job'],
+                    ['Min Time'],
+                    ['Max Time'],
+                    ['Average Time']
+                ];
+                angular.forEach(results, function(response, jobIndex) {
+                    buildsList = response.data;
+                    var forJob = forPipe.jobs[jobIndex];
+                    rawData[0].push(forJob.name);
+                    var durations = _.map(buildsList, build => {
+                        return build.end_time - build.start_time;
+                    });
+                    var min = _.min(durations);
+                    var max = _.max(durations);
+                    var average = _.sum(durations)/durations.length;
+                    rawData[1].push({type: 'number', v: min, f: moment.duration(min, 'seconds').humanize()});
+                    rawData[2].push({type: 'number', v: max, f: moment.duration(max, 'seconds').humanize()});
+                    rawData[3].push({type: 'number', v: average, f: moment.duration(average, 'seconds').humanize()});
+                });
+
+                var data = google.visualization.arrayToDataTable(rawData);
+                var maxvalue = _(rawData).slice(1).map(rawRow => _(rawRow).slice(1).map('v').value()).flatten().max();
+                maxvalue *= 1.05;
+                var options = {
+                    title: 'Built times for ' + forPipe.name,
+                    chartArea: {width: '50%'},
+                    height: 500,
+                    backgroundColor: 'transparent',
+                    is3D: true,
+                    titleTextStyle: {
+                        color: '#BDC3C7'
+                    },
+                    legend: {
+                        textStyle: {
+                            color: '#BDC3C7'
+                        }
+                    },
+                    hAxis: {
+                        title: 'Time',
+                        baselineColor: '#BDC3C7',
+                        textStyle: {
+                            color: '#BDC3C7'
+                        },
+                        ticks: [
+                            {v: 0, f: moment.duration(0, 'seconds').humanize()},
+                            {v: maxvalue*0.25, f: moment.duration(maxvalue*0.25, 'seconds').humanize()},
+                            {v: maxvalue*0.5, f: moment.duration(maxvalue*0.5, 'seconds').humanize()},
+                            {v: maxvalue*0.75, f: moment.duration(maxvalue*0.75, 'seconds').humanize()},
+                            {v: maxvalue, f: moment.duration(maxvalue, 'seconds').humanize()}
+                        ]
+                    },
+                    vAxis: {
+                        baselineColor: '#BDC3C7',
+                        textStyle: {
+                            color: '#BDC3C7'
+                        }
+                    }
+                };
+
+                
+
+                var chart = new google.visualization.BarChart(document.getElementById('chart_div'));
+                chart.draw(data, options);
+            });
+		}
 
 		$scope.sidebarToggle = function() {
 			$scope.sidebarVisible = !!!$scope.sidebarVisible;
